@@ -2,3 +2,4 @@
 .venv/
 
 src/categen/dist
+src/categen/__pycache__
