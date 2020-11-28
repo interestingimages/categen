@@ -1,1 +1,1 @@
-from categen import categen
+from .categen import CatalogueGenerator
