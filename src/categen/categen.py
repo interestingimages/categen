@@ -105,8 +105,10 @@ class CatalogueGenerator:
         self.template = format_dir.joinpath('thumbnail/template.png')
         assert self.template.is_file(), f'{self.template} is a non-existant file.'
 
+        self.preview = preview
+
         self.entry_path = format_dir.joinpath('entry.txt')
-        assert self.template.is_file(), f'{self.template} is a non-existant file.'
+        assert self.entry_path.is_file(), f'{self.entry_path} is a non-existant file.'
 
         self.meta = {
             'id': cat_id,
@@ -221,6 +223,12 @@ class CatalogueGenerator:
     def thumbnail(self) -> Image.Image:
         with open(self.placements, 'r') as placements_file:
             placements = load(placements_file)
+
+        placements['viewfinder']['path'] = self.preview
+
+        for area in placements:
+            if isinstance(area['path'], str):
+                area['path'] = self.format_dir.joinpath(area['path'])
 
         template_image = Image.open(self.template).convert('RGBA')
 
