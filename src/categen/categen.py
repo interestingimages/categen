@@ -140,18 +140,57 @@ class CatalogueGenerator:
                                path_to=self.format_dir)
     
     def entry(self) -> str:  # TODO
+        def sanitize(name):
+            # Really old [] removal from InterestingSystems/Author,
+            # since nhentai doesnt give pretty Japanese titles.
+            stop = [')', ']']
+            watching = False
+            detagged = name
+            keyword = ''
+            signal = ''
+
+            for letter in name:
+                if watching:
+                    keyword = keyword + letter
+
+                if letter == '[' and signal == '':
+                    signal = ']'
+                    watching = True
+                    keyword = letter
+
+                if letter == '(' and signal == '':
+                    signal = ')'
+                    watching = True
+                    keyword = letter
+
+                if letter in stop and letter == signal:
+                    watching = False
+
+                    signal = ''
+
+                    detagged = detagged.replace(keyword, '')
+                    keyword = ''
+
+            detagged = detagged.split(' ')
+            pure = [elem for elem in detagged if elem != '']
+
+            return ' '.join(pure)
+
         with open(self.entry_path, 'r') as entry_file:
             entry_text = entry_file.read()
         
         entry_text = entry_text.replace('f:number', str(self.meta['id']))
 
-        entry_text = entry_text.replace('f:title.pretty',
+        entry_text = entry_text.replace('f:title.en_pretty',
                                         self.doujin.title(Format.Pretty))
+
+        entry_text = entry_text.replace('f:title.en', self.doujin.title())
 
         entry_text = entry_text.replace('f:title.jp',
                                         self.doujin.title(Format.Japanese))
-        
-        entry_text = entry_text.replace('f:title.english', self.doujin.title())
+
+        entry_text = entry_text.replace('f:title.jp_pretty',
+                                        sanitize(self.doujin.title(Format.Japanese)))
 
         entry_text = entry_text.replace('f:pages', str(self.doujin.num_pages))
 
