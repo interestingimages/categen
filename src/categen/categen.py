@@ -87,7 +87,7 @@ class CatalogueGenerator:
         cat_id: int,
         doujin_id: int,
         preview: Image.Image,
-        score: int,
+        score: str,
         desc: str,
         format_dir: Path = Path(config['Repository']['download_path']),
     ):
