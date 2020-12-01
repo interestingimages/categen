@@ -1,13 +1,16 @@
-from PrintingPress import Placements, operate
 from configparser import ConfigParser
-from hentai import Hentai, Format
+from os import getenv, mkdir, walk
+from tarfile import open as topen
 from requests import get as rget
 from datetime import datetime
-from os import getenv, mkdir
+from json import loads, load
 from platform import system
+from shutil import rmtree
 from pathlib import Path
+
+from PrintingPress import Placements, operate
+from hentai import Hentai, Format
 from PIL import Image
-from json import load
 from git import Repo
 
 
@@ -17,19 +20,21 @@ _local_format_dir = Path(_file_dir).joinpath('format')
 # Directory Checks
 data_dir_map = {
     'Linux': getenv(
-        'XDG_DATA_DIR', Path(Path.home(),'.local/share/interestingimages')
+        'XDG_DATA_DIR',
+        Path(Path.home(),'.local/share')
     ),
 
     'Windows': getenv(
-        'XDG_DATA_DIR', Path(Path.home(),'AppData\Roaming\interestingimages')
+        'XDG_DATA_DIR',
+        Path(Path.home(),'AppData\Roaming')
     ),
 
     'macOS': getenv(
-        'XDG_DATA_DIR', Path(Path.home(), 'Library/interestingimages')
+        'XDG_DATA_DIR', Path(Path.home(), 'Library')
     )
 }
 
-_data_dir = Path(data_dir_map[system()])
+_data_dir = Path(data_dir_map[system()]).joinpath('interestingimages')
 _format_dir = _data_dir.joinpath('format')
 _config_file = _data_dir.joinpath('config.ini')
 
@@ -44,7 +49,7 @@ if _config_file.is_file() is False:
     config['Repository'] = {
         'format_repository': 'git://github.com/interestingimages/Format.git',
         'latest_placements': 'https://raw.githubusercontent.com/' + 
-            'interestingimages/Design/master/placements.json',
+            'interestingimages/Format/master/placements.json',
         'download_path': str(_format_dir)
     }
 
@@ -82,9 +87,9 @@ class CatalogueGenerator:
         cat_id: int,
         doujin_id: int,
         preview: Image.Image,
+        score: int,
+        desc: str,
         format_dir: Path = Path(config['Repository']['download_path']),
-        score: int = 5,
-        desc: str = ''
     ):
         assert isinstance(
             doujin_id, int
@@ -111,7 +116,7 @@ class CatalogueGenerator:
         assert self.entry_path.is_file(), f'{self.entry_path} is a non-existant file.'
 
         self.meta = {
-            'id': cat_id,
+            'id': f'{"0" * (3 - len(str(cat_id)))}{cat_id}',
             'score': score,
             'desc': desc
         }
@@ -121,8 +126,8 @@ class CatalogueGenerator:
         except Exception as e:
             raise (f'Doujin could not be retrieved. ({e})')
     
-    def update_check(self) -> None:
-        lplacements = load(rget(config['Repository']['latest_placements']).text)
+    def update_check(self) -> dict:
+        lplacements = loads(rget(config['Repository']['latest_placements']).text)
 
         with open(self.placements, 'r') as placements_file:
             cplacements = load(placements_file)
@@ -130,14 +135,21 @@ class CatalogueGenerator:
         report = {
             'status': lplacements['.meta']['version'] == cplacements['.meta']['version'],
             'latest': lplacements['.meta']['version'],
-            'currect': cplacements['.meta']['version']
+            'current': cplacements['.meta']['version']
         }
 
         return report
     
     def update(self) -> Repo:
+        # Back up current repo
+        with topen(_data_dir.joinpath('format-backup.tar.bz2'), mode='w:bz2') as backup:
+            backup.add(self.format_dir, recursive=True)
+            backup.close()
+
+        rmtree(self.format_dir)
+
         return Repo.clone_from(url=config['Repository']['format_repository'],
-                               path_to=self.format_dir)
+                               to_path=self.format_dir)
     
     def entry(self) -> str:  # TODO
         def sanitize(name):
@@ -179,18 +191,18 @@ class CatalogueGenerator:
         with open(self.entry_path, 'r') as entry_file:
             entry_text = entry_file.read()
         
-        entry_text = entry_text.replace('f:number', str(self.meta['id']))
+        entry_text = entry_text.replace('f:number', self.meta['id'])
 
-        entry_text = entry_text.replace('f:title.en_pretty',
+        entry_text = entry_text.replace('f:title.en-pretty',
                                         self.doujin.title(Format.Pretty))
 
         entry_text = entry_text.replace('f:title.en', self.doujin.title())
 
+        entry_text = entry_text.replace('f:title.jp-pretty',
+                                        sanitize(self.doujin.title(Format.Japanese)))
+
         entry_text = entry_text.replace('f:title.jp',
                                         self.doujin.title(Format.Japanese))
-
-        entry_text = entry_text.replace('f:title.jp_pretty',
-                                        sanitize(self.doujin.title(Format.Japanese)))
 
         entry_text = entry_text.replace('f:pages', str(self.doujin.num_pages))
 
@@ -259,23 +271,36 @@ class CatalogueGenerator:
 
         return entry_text
 
-    def thumbnail(self) -> Image.Image:
+    def thumbnail(self, suppress: bool = False) -> Image.Image:
         with open(self.placements, 'r') as placements_file:
             placements = load(placements_file)
 
         placements['viewfinder']['path'] = self.preview
 
-        for area in placements:
-            if isinstance(area['path'], str):
-                area['path'] = self.format_dir.joinpath(area['path'])
+        for area_name, area_data in placements.items():
+            if area_name != '.meta':
+                if isinstance(area_data['path'], str):
+                    area_data['path'] = str(self.format_dir.joinpath(area_data['path']))
+
+        artist_names = [tag.name for tag in self.doujin.artist]
+        artist_names_str = ', '.join(artist_names)
+
+        placements['artist']['text'] = artist_names_str
+
+        tag_names = [tag.name for tag in self.doujin.tag]
+        placements['tags']['text'] = ', '.join(tag_names)
+
+        placements['title']['text'] = self.doujin.title(Format.Pretty)
 
         template_image = Image.open(self.template).convert('RGBA')
 
-        thumbnail = operate(image=template_image, placements=placements)
+        return operate(image=template_image,
+                       placements=Placements.parse(placements),
+                       suppress=suppress)
 
 
 def retrieve_latest_format(
     format_dir: Path = config['Repository']['download_path']
 ) -> Repo:
     return Repo.clone_from(url=config['Repository']['format_repository'],
-                           path_to=format_dir)
+                           to_path=format_dir)
