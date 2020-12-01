@@ -292,6 +292,8 @@ class CatalogueGenerator:
 
         placements['title']['text'] = self.doujin.title(Format.Pretty)
 
+        placements['link']['text'] = f'nh.{self.doujin.id}'
+
         template_image = Image.open(self.template).convert('RGBA')
 
         return operate(image=template_image,
