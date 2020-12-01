@@ -3,3 +3,6 @@
 
 src/categen/dist
 src/categen/__pycache__
+
+tests/output
+tests/__pycache__
