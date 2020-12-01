@@ -36,7 +36,7 @@ data_dir_map = {
 
 _data_dir = Path(data_dir_map[system()]).joinpath('interestingimages')
 _format_dir = _data_dir.joinpath('format')
-_config_file = _data_dir.joinpath('config.ini')
+_config_file = _data_dir.joinpath('categen.ini')
 
 if _data_dir.is_dir() is False:
     mkdir(_data_dir)
