@@ -1,5 +1,1 @@
-from .categen import (
-    CatalogueGenerator,
-    config as Config,
-    retrieve_latest_format
-)
+from .categen import CatalogueGenerator, config, retrieve_latest_format
