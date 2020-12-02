@@ -55,6 +55,11 @@ thumbnail = generator.thumbnail()  # returns PIL.Image.Image
 # you can then handle the files or write them out
 ```
 
+You can run a test on the main functions of categen by using the following command
+in the root of the repository directory:
+
+`python -c "import tests"`
+
 ## Contact
 
 This script isn't intended for much usage out of the interesting images Community,
