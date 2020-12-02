@@ -81,6 +81,49 @@ if _format_dir.is_dir() is False:
             )
 
 
+def sanitize(name) -> str:
+    # Really old [] removal from InterestingSystems/Author,
+    # since nhentai doesnt give pretty Japanese titles.
+    stop = [')', ']']
+    watching = False
+    detagged = name
+    keyword = ''
+    signal = ''
+
+    for letter in name:
+        if watching:
+            keyword = keyword + letter
+
+        if letter == '[' and signal == '':
+            signal = ']'
+            watching = True
+            keyword = letter
+
+        if letter == '(' and signal == '':
+            signal = ')'
+            watching = True
+            keyword = letter
+
+        if letter in stop and letter == signal:
+            watching = False
+
+            signal = ''
+
+            detagged = detagged.replace(keyword, '')
+            keyword = ''
+
+    detagged = detagged.split(' ')
+    pure = [elem for elem in detagged if elem != '']
+
+    return ' '.join(pure)
+
+def retrieve_latest_format(
+    format_dir: Path = config['Repository']['download_path']
+) -> Repo:
+    return Repo.clone_from(url=config['Repository']['format_repository'],
+                           to_path=format_dir)
+
+
 class CatalogueGenerator:
     def __init__(
         self,
@@ -150,44 +193,71 @@ class CatalogueGenerator:
 
         return Repo.clone_from(url=config['Repository']['format_repository'],
                                to_path=self.format_dir)
-    
-    def entry(self) -> str:  # TODO
-        def sanitize(name):
-            # Really old [] removal from InterestingSystems/Author,
-            # since nhentai doesnt give pretty Japanese titles.
-            stop = [')', ']']
-            watching = False
-            detagged = name
-            keyword = ''
-            signal = ''
 
-            for letter in name:
-                if watching:
-                    keyword = keyword + letter
+    def format(self, text: str) -> str:  # TODO
+        # Title Generation
+        title_p_en = self.doujin.title(Format.Pretty)
+        title_p_jp = sanitize(self.doujin.title(Format.Japanese))
 
-                if letter == '[' and signal == '':
-                    signal = ']'
-                    watching = True
-                    keyword = letter
+        if title_p_en != '' and title_p_jp != '':  #      en + jp
+            title = f'{title_p_en - title_p_jp}'
+        elif title_p_en != '' and title_p_jp == '':  #    en
+            title = f'{title_p_en}'
+        elif title_p_en == '' and title_p_jp != '':  #    jp
+            title = f'{title_p_jp}'
+        else:  #                                          nothing
+            title = ''
 
-                if letter == '(' and signal == '':
-                    signal = ')'
-                    watching = True
-                    keyword = letter
+        # Creator Text Generation
+        artist_names = [tag.name for tag in self.doujin.artist]
+        artist_names_str = ', '.join(artist_names)
 
-                if letter in stop and letter == signal:
-                    watching = False
+        group_names = [tag.name for tag in self.doujin.group]
+        group_names_str = ', '.join(group_names)
 
-                    signal = ''
+        if len(artist_names) > 0 and len(group_names) > 0:  #      artist + group
+            creator = f'({artist_names_str} / {group_names_str})'
+        elif len(artist_names) > 0 and len(group_names) == 0:  #   artist
+            creator = f'({artist_names_str})'
+        elif len(artist_names) == 0 and len(group_names) > 0:  #   group:
+            creator = f'({group_names_str})'
+        else:  #                                                   nothing
+            creator = ''
 
-                    detagged = detagged.replace(keyword, '')
-                    keyword = ''
+        format_map = {
+            '<[bold]>': self.formatting['bold'],
+            '<[italic]>': self.formatting['italic'],
+            '<[scode]>': self.formatting['scode'],
+            '<[mcode]>': self.formatting['mcode'],
 
-            detagged = detagged.split(' ')
-            pure = [elem for elem in detagged if elem != '']
+            '<[entry_id]>': self.meta['id'],
+            '<[rating]>': self.meta['score'],
+            '<[description]>': self.meta['desc'],
 
-            return ' '.join(pure)
+            '<[title.english]>': self.doujin.title(),
+            '<[title.english.pretty]>': title_p_en,
+            '<[title.japanese]>:': self.doujin.title(Format.Japanese),
+            '<[title.japanese.pretty]>': title_p_jp,
+            '<[title]>': title,
 
+            '<[creator.scanlator]>': self.doujin.scanlator,
+            '<[creator.artist]>': ', '.join(self.doujin.artist),
+            '<[creator.group]>': ', '.join(self.doujin.group),
+            '<[creator]>': creator,
+
+            '<[doujin_id]>': self.doujin.magic,
+            '<[pages]>': self.doujin.num_pages,
+            '<[favourites]>': self.doujin.num_favorites,
+            '<[link]>': self.doujin.url,
+            '<[time]>': datetime.fromtimestamp(
+                self.doujin.epos
+            ).strftime('%B %d %Y, %H:%M:%S')
+        }
+
+        for keyword, replacement in format_map.items():
+            text = text.format(keyword, replacement)
+
+    def entry(self) -> str:
         with open(self.entry_path, 'r') as entry_file:
             entry_text = entry_file.read()
         
@@ -292,6 +362,8 @@ class CatalogueGenerator:
 
         placements['title']['text'] = self.doujin.title(Format.Pretty)
 
+        placements['id']['text'] = self.meta['id']
+
         placements['link']['text'] = f'nh.{self.doujin.id}'
 
         template_image = Image.open(self.template).convert('RGBA')
@@ -299,10 +371,3 @@ class CatalogueGenerator:
         return operate(image=template_image,
                        placements=Placements.parse(placements),
                        suppress=suppress)
-
-
-def retrieve_latest_format(
-    format_dir: Path = config['Repository']['download_path']
-) -> Repo:
-    return Repo.clone_from(url=config['Repository']['format_repository'],
-                           to_path=format_dir)
