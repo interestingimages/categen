@@ -46,8 +46,8 @@ global config
 
 if _config_file.is_file() is False:
     config = ConfigParser()
-    config['Configuration'] = {
-        'markdown': 'Telegram',
+    config['Settings'] = {
+        'markdown_type': 'Telegram',
         'divide': 'both',
         'interestingtags': True,
     }
@@ -168,10 +168,11 @@ class CatalogueGenerator:
         score: str,
         desc: str,
         format_dir: Path = Path(config['Repository']['download_path']),
-        markdown: str = Path(config['General']['markdown']),
-        divide: str = Path(config['General']['divide'])
+        markdown: str = config['Settings']['markdown_type'],
+        divide: str = config['Settings']['divide'],
+        interestingtags: bool = True if config['Settings']['interestingtags'] == 'True' else False
     ):
-        assert markdown in self.markdown_map.keys(), f'Invalid markdown type! ({markdown})'
+        assert markdown in self.markdown_map, f'Invalid markdown type! ({markdown})'
         self.markdown_type = markdown
         self.markdown = self.markdown_map[markdown]
 
@@ -191,7 +192,9 @@ class CatalogueGenerator:
 
         self.formatting_map = format_dir.joinpath('formatting.json')
         if self.formatting_map.is_file():
-            self.formatting_map = load(open('formatting.json', 'r', encoding='utf-8'))
+            self.formatting_map = load(open(self.formatting_map, 'r', encoding='utf-8'))
+        else:
+            self.formatting_map = {}
 
         self.format_repo = Repo(format_dir)
 
@@ -206,13 +209,6 @@ class CatalogueGenerator:
         self.entry_path = format_dir.joinpath('entry.txt')
         assert self.entry_path.is_file(), f'{self.entry_path} is a non-existant file.'
 
-        self.tagsofinterest_path =  format_dir.joinpath('tagsofinterest.json')
-        assert self.tagsofinterest.exists(), \
-            f'{self.tagsofinterest_path} is non-existant file.'
-
-        with open(self.tagsofinterest_path, 'r', encoding='utf-8') as toi:
-            self.tagsofinterest = load(toi)
-
         self.meta = {
             'id': f'{"0" * (3 - len(str(cat_id)))}{cat_id}',
             'score': score,
@@ -223,6 +219,16 @@ class CatalogueGenerator:
             self.doujin = Hentai(doujin_id)
         except Exception as e:
             raise Exception(f'Doujin could not be retrieved. ({e})')
+
+        self.tagsofinterest_path = format_dir.joinpath('tagsofinterest.json')
+        if not self.tagsofinterest_path.exists():
+            self.tagsofinterest = [tag.name for tag in self.doujin.tag]
+            self.interestingtags = False
+
+        else:
+            with open(self.tagsofinterest_path, 'r', encoding='utf-8') as toi:
+                self.tagsofinterest = load(toi)
+                self.interestingtags = interestingtags
     
     def divide(self, text: str) -> str:
         if self.divide_type == 'both':
@@ -270,12 +276,15 @@ class CatalogueGenerator:
         title_p_en = self.doujin.title(Format.Pretty)
         title_p_jp = sanitize(self.doujin.title(Format.Japanese))
 
+        bold = self.markdown['bold'][0]
+        _bold = self.markdown['bold'][1]
+
         if title_p_en != '' and title_p_jp != '':  # <--- en + jp
-            title = f'{title_p_en - title_p_jp}'
+            title = f'{bold}{title_p_en}{_bold} - {title_p_jp}'
         elif title_p_en != '' and title_p_jp == '':  # <- en
-            title = f'{title_p_en}'
+            title = f'{bold}{title_p_en}{_bold}'
         elif title_p_en == '' and title_p_jp != '':  # <- jp
-            title = f'{title_p_jp}'
+            title = f'{bold}{title_p_jp}{_bold}'
         else:  # <--------------------------------------- nothing
             title = ''
 
@@ -301,17 +310,17 @@ class CatalogueGenerator:
         tags_remainder = [tag for tag in tags if tag not in tags_interest]
 
         format_map = {
-            '<[bold]>': self.markdown['bold'][0],
-            '<[-bold]>': self.markdown['mcode'][1],
+            'bold': self.markdown['bold'][0],
+            '-bold': self.markdown['bold'][1],
 
-            '<[italic]>': self.markdown['italic'][0],
-            '<[-italic]>': self.markdown['mcode'][1],
+            'italic': self.markdown['italic'][0],
+            '-italic': self.markdown['italic'][1],
 
-            '<[scode]>': self.markdown['scode'][0],
-            '<[-scode]>': self.markdown['mcode'][1],
+            'scode': self.markdown['scode'][0],
+            '-scode': self.markdown['scode'][1],
 
-            '<[mcode]>': self.markdown['mcode'][0],
-            '<[-mcode]>': self.markdown['mcode'][1],
+            'mcode': self.markdown['mcode'][0],
+            '-mcode': self.markdown['mcode'][1],
 
             fword('entry_id'): self.meta['id'],
             fword('rating'): self.meta['score'],
@@ -328,13 +337,13 @@ class CatalogueGenerator:
             fword('tags'): ', '.join(tags),
 
             fword('creator.scanlator'): self.doujin.scanlator,
-            fword('creator.artist'): ', '.join(self.doujin.artist),
-            fword('creator.group'): ', '.join(self.doujin.group),
+            fword('creator.artist'): ', '.join([t.name for t in self.doujin.artist]),
+            fword('creator.group'): ', '.join([t.name for t in self.doujin.group]),  # <- applicable
             fword('creator'): creator,
 
-            fword('doujin_id'): str(self.doujin.magic),
-            fword('pages'): str(self.doujin.num_pages),
-            fword('favourites'): str(self.doujin.num_favorites),  # <-------------------- applicable
+            fword('doujin_id'): self.doujin.id,
+            fword('pages'): self.doujin.num_pages,
+            fword('favourites'): self.doujin.num_favorites,  # <------------------------- applicable
             fword('link'): self.doujin.url,
             fword('time'): datetime.fromtimestamp(self.doujin.epos).strftime('%B %d %Y, %H:%M:%S'),
 
@@ -342,7 +351,7 @@ class CatalogueGenerator:
 
             fword('character'): ', '.join([t.name for t in self.doujin.character]),  # <- applicable
 
-            fword('slink'): f'nh.{self.doujin.magic}'
+            fword('slink'): f'nh.{self.doujin.id}'
         }
 
         for keyword, replacement in format_map.items():
@@ -350,39 +359,24 @@ class CatalogueGenerator:
                 'parody' in keyword and replacement == 'original',
                 'parody' in keyword and replacement == '',
                 'favourites' in keyword and replacement == '0',
-                'character' in keyword and replacement == ''
+                'character' in keyword and replacement == '',
+                'creator.group' in keyword and replacement == ''
             ]):
                 if ':' in keyword:
                     # keyword:\nkeyword\n
-                    keyword = keyword.lstrip(keyword.split(':')[0]).format(replacement)
+                    keyword = keyword.split(':')[0]
+                    replacement = keyword.lstrip(keyword.split(':')[0]).format(replacement)
 
-                text = self.divide(text.format(keyword, replacement))
+                text = self.divide(text.replace(f'<[{keyword}]>', str(replacement)))
             
             else:
-                text = text.format(f'<[{keyword}]>', '')
+                text = text.replace(f'<[{keyword}]>', '')
 
         return text
 
     def entry(self) -> str:
         with open(self.entry_path, 'r') as entry_file:
             entry_text = self.format(entry_file.read())
-
-        # Characters
-        if len(self.doujin.character) > 0:
-            tag_names = [tag.name for tag in self.doujin.character]
-            total = len(tag_names)
-            prefix = 'Character: ' if total == 1 else 'Characters: '
-
-            entry_text = entry_text.replace('f:characters',
-                                            prefix + ', '.join(tag_names))
-
-        else: 
-            entry_text = entry_text.replace('\nf:characters', '')
-
-        # Tags
-        tag_names = [tag.name for tag in self.doujin.tag]
-        total = len(tag_names)
-        entry_text = entry_text.replace('f:tags', 'Tagged: ' + ', '.join(tag_names))
 
         return entry_text
 
@@ -396,9 +390,11 @@ class CatalogueGenerator:
             if area_name != '.meta':
                 if isinstance(area_data['path'], str):
                     area_data['path'] = str(self.format_dir.joinpath(area_data['path']))
-
-        for area in [area for area in placements if 'text' in area]:
-            area['text'] = self.format(area['text'])
+                
+                if 'text' in area_data:
+                    area_data['text'] = self.format(area_data['text'])
+                
+                placements[area_name] = area_data
 
         template_image = Image.open(self.template).convert('RGBA')
 
