@@ -347,9 +347,10 @@ class CatalogueGenerator:
             fword('link'): self.doujin.url,
             fword('time'): datetime.fromtimestamp(self.doujin.epos).strftime('%B %d %Y, %H:%M:%S'),
 
+            # TODO: Test/fix this, 300000 should display both but it doesn't
             fword('parody'): ', '.join([t.name for t in self.doujin.parody]),  # <------- applicable
 
-            fword('character'): ', '.join([t.name for t in self.doujin.character]),  # <- applicable
+            fword('characters'): ', '.join([t.name for t in self.doujin.character]),  # <- applicable
 
             fword('slink'): f'nh.{self.doujin.id}'
         }
@@ -365,7 +366,7 @@ class CatalogueGenerator:
                 if ':' in keyword:
                     # keyword:\nkeyword\n
                     keyword = keyword.split(':')[0]
-                    replacement = keyword.lstrip(keyword.split(':')[0]).format(replacement)
+                    replacement = keyword.lstrip(keyword.split(':')[0]).replace('{}', replacement)
 
                 text = self.divide(text.replace(f'<[{keyword}]>', str(replacement)))
             
