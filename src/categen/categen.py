@@ -1,9 +1,9 @@
 from configparser import ConfigParser
-from os import getenv, mkdir, walk
 from tarfile import open as topen
 from requests import get as rget
 from datetime import datetime
 from json import loads, load
+from os import getenv, mkdir
 from platform import system
 from shutil import rmtree
 from pathlib import Path
@@ -46,6 +46,11 @@ global config
 
 if _config_file.is_file() is False:
     config = ConfigParser()
+    config['Configuration'] = {
+        'markdown': 'Telegram',
+        'divide': 'both',
+        'interestingtags': True,
+    }
     config['Repository'] = {
         'format_repository': 'git://github.com/interestingimages/Format.git',
         'latest_placements': 'https://raw.githubusercontent.com/' + 
@@ -125,6 +130,36 @@ def retrieve_latest_format(
 
 
 class CatalogueGenerator:
+    markdown_map = {
+        'WhatsApp': {
+            # *Hello World*
+            'bold': ['*', '*'],
+
+            # _Hello World_
+            'italic': ['_', '_'],
+
+            #```Hello World```
+            'mcode': ['```', '```'],
+            'mcode': ['```', '```']
+        },
+
+        'Telegram': {
+            # **Hello World**
+            'bold': ['**', '**'],
+
+            # __Hello World__
+            'italic': ['__', '__'],
+
+            # `Hello World`
+            'scode': ['`', '`'],
+
+            # ```
+            # Hello World
+            # ```
+            'mcode': ['```\n', '\n```']
+        }
+    }
+
     def __init__(
         self,
         cat_id: int,
@@ -133,7 +168,16 @@ class CatalogueGenerator:
         score: str,
         desc: str,
         format_dir: Path = Path(config['Repository']['download_path']),
+        markdown: str = Path(config['General']['markdown']),
+        divide: str = Path(config['General']['divide'])
     ):
+        assert markdown in self.markdown_map.keys(), f'Invalid markdown type! ({markdown})'
+        self.markdown_type = markdown
+        self.markdown = self.markdown_map[markdown]
+
+        assert divide in ['left', 'right', 'both']
+        self.divide_type = divide
+
         assert isinstance(
             doujin_id, int
         ), f'doujin_id must be int (got {type(doujin_id)})'
@@ -144,6 +188,10 @@ class CatalogueGenerator:
 
         self.format_dir = format_dir
         assert self.format_dir.is_dir(), f'{format_dir} is a non-existant dir.'
+
+        self.formatting_map = format_dir.joinpath('formatting.json')
+        if self.formatting_map.is_file():
+            self.formatting_map = load(open('formatting.json', 'r', encoding='utf-8'))
 
         self.format_repo = Repo(format_dir)
 
@@ -158,6 +206,13 @@ class CatalogueGenerator:
         self.entry_path = format_dir.joinpath('entry.txt')
         assert self.entry_path.is_file(), f'{self.entry_path} is a non-existant file.'
 
+        self.tagsofinterest_path =  format_dir.joinpath('tagsofinterest.json')
+        assert self.tagsofinterest.exists(), \
+            f'{self.tagsofinterest_path} is non-existant file.'
+
+        with open(self.tagsofinterest_path, 'r', encoding='utf-8') as toi:
+            self.tagsofinterest = load(toi)
+
         self.meta = {
             'id': f'{"0" * (3 - len(str(cat_id)))}{cat_id}',
             'score': score,
@@ -167,7 +222,17 @@ class CatalogueGenerator:
         try:
             self.doujin = Hentai(doujin_id)
         except Exception as e:
-            raise (f'Doujin could not be retrieved. ({e})')
+            raise Exception(f'Doujin could not be retrieved. ({e})')
+    
+    def divide(self, text: str) -> str:
+        if self.divide_type == 'both':
+            return text
+
+        elif self.divide_type == 'left':
+            return text.split('|')[0].lstrip().rstrip()
+
+        else:
+            return text.split('|')[1].lstrip().rstrip()
     
     def update_check(self) -> dict:
         lplacements = loads(rget(config['Repository']['latest_placements']).text)
@@ -194,18 +259,24 @@ class CatalogueGenerator:
         return Repo.clone_from(url=config['Repository']['format_repository'],
                                to_path=self.format_dir)
 
-    def format(self, text: str) -> str:  # TODO
+    def format(self, text: str) -> str:
+        def fword(keyword: str) -> str:
+            try:
+                return f'{keyword}:{self.formatting_map[keyword]}'
+            except KeyError:
+                return keyword
+
         # Title Generation
         title_p_en = self.doujin.title(Format.Pretty)
         title_p_jp = sanitize(self.doujin.title(Format.Japanese))
 
-        if title_p_en != '' and title_p_jp != '':  #      en + jp
+        if title_p_en != '' and title_p_jp != '':  # <--- en + jp
             title = f'{title_p_en - title_p_jp}'
-        elif title_p_en != '' and title_p_jp == '':  #    en
+        elif title_p_en != '' and title_p_jp == '':  # <- en
             title = f'{title_p_en}'
-        elif title_p_en == '' and title_p_jp != '':  #    jp
+        elif title_p_en == '' and title_p_jp != '':  # <- jp
             title = f'{title_p_jp}'
-        else:  #                                          nothing
+        else:  # <--------------------------------------- nothing
             title = ''
 
         # Creator Text Generation
@@ -215,112 +286,86 @@ class CatalogueGenerator:
         group_names = [tag.name for tag in self.doujin.group]
         group_names_str = ', '.join(group_names)
 
-        if len(artist_names) > 0 and len(group_names) > 0:  #      artist + group
+        if len(artist_names) > 0 and len(group_names) > 0:  # <---- artist + group
             creator = f'({artist_names_str} / {group_names_str})'
-        elif len(artist_names) > 0 and len(group_names) == 0:  #   artist
+        elif len(artist_names) > 0 and len(group_names) == 0:  # <- artist
             creator = f'({artist_names_str})'
-        elif len(artist_names) == 0 and len(group_names) > 0:  #   group:
+        elif len(artist_names) == 0 and len(group_names) > 0:  # <- group:
             creator = f'({group_names_str})'
-        else:  #                                                   nothing
+        else:  # <------------------------------------------------- nothing
             creator = ''
 
+        # Tags
+        tags = [self.divide(tag.name) for tag in self.doujin.tag]
+        tags_interest = [tag for tag in tags if tag in self.tagsofinterest]
+        tags_remainder = [tag for tag in tags if tag not in tags_interest]
+
         format_map = {
-            '<[bold]>': self.formatting['bold'],
-            '<[italic]>': self.formatting['italic'],
-            '<[scode]>': self.formatting['scode'],
-            '<[mcode]>': self.formatting['mcode'],
+            '<[bold]>': self.markdown['bold'][0],
+            '<[-bold]>': self.markdown['mcode'][1],
 
-            '<[entry_id]>': self.meta['id'],
-            '<[rating]>': self.meta['score'],
-            '<[description]>': self.meta['desc'],
+            '<[italic]>': self.markdown['italic'][0],
+            '<[-italic]>': self.markdown['mcode'][1],
 
-            '<[title.english]>': self.doujin.title(),
-            '<[title.english.pretty]>': title_p_en,
-            '<[title.japanese]>:': self.doujin.title(Format.Japanese),
-            '<[title.japanese.pretty]>': title_p_jp,
-            '<[title]>': title,
+            '<[scode]>': self.markdown['scode'][0],
+            '<[-scode]>': self.markdown['mcode'][1],
 
-            '<[creator.scanlator]>': self.doujin.scanlator,
-            '<[creator.artist]>': ', '.join(self.doujin.artist),
-            '<[creator.group]>': ', '.join(self.doujin.group),
-            '<[creator]>': creator,
+            '<[mcode]>': self.markdown['mcode'][0],
+            '<[-mcode]>': self.markdown['mcode'][1],
 
-            '<[doujin_id]>': self.doujin.magic,
-            '<[pages]>': self.doujin.num_pages,
-            '<[favourites]>': self.doujin.num_favorites,
-            '<[link]>': self.doujin.url,
-            '<[time]>': datetime.fromtimestamp(
-                self.doujin.epos
-            ).strftime('%B %d %Y, %H:%M:%S')
+            fword('entry_id'): self.meta['id'],
+            fword('rating'): self.meta['score'],
+            fword('description'): self.meta['desc'],
+
+            fword('title.english'): self.doujin.title(),
+            fword('title.english.pretty'): title_p_en,
+            fword('title.japanese:'): self.doujin.title(Format.Japanese),
+            fword('title.japanese.pretty'): title_p_jp,
+            fword('title'): title,
+
+            fword('tags.interest'): ', '.join(tags_interest),
+            fword('tags.remainder'): ', '.join(tags_remainder),
+            fword('tags'): ', '.join(tags),
+
+            fword('creator.scanlator'): self.doujin.scanlator,
+            fword('creator.artist'): ', '.join(self.doujin.artist),
+            fword('creator.group'): ', '.join(self.doujin.group),
+            fword('creator'): creator,
+
+            fword('doujin_id'): str(self.doujin.magic),
+            fword('pages'): str(self.doujin.num_pages),
+            fword('favourites'): str(self.doujin.num_favorites),  # <-------------------- applicable
+            fword('link'): self.doujin.url,
+            fword('time'): datetime.fromtimestamp(self.doujin.epos).strftime('%B %d %Y, %H:%M:%S'),
+
+            fword('parody'): ', '.join([t.name for t in self.doujin.parody]),  # <------- applicable
+
+            fword('character'): ', '.join([t.name for t in self.doujin.character]),  # <- applicable
+
+            fword('slink'): f'nh.{self.doujin.magic}'
         }
 
         for keyword, replacement in format_map.items():
-            text = text.format(keyword, replacement)
+            if not any([
+                'parody' in keyword and replacement == 'original',
+                'parody' in keyword and replacement == '',
+                'favourites' in keyword and replacement == '0',
+                'character' in keyword and replacement == ''
+            ]):
+                if ':' in keyword:
+                    # keyword:\nkeyword\n
+                    keyword = keyword.lstrip(keyword.split(':')[0]).format(replacement)
+
+                text = self.divide(text.format(keyword, replacement))
+            
+            else:
+                text = text.format(f'<[{keyword}]>', '')
+
+        return text
 
     def entry(self) -> str:
         with open(self.entry_path, 'r') as entry_file:
-            entry_text = entry_file.read()
-        
-        entry_text = entry_text.replace('f:number', self.meta['id'])
-
-        entry_text = entry_text.replace('f:title.en-pretty',
-                                        self.doujin.title(Format.Pretty))
-
-        entry_text = entry_text.replace('f:title.en', self.doujin.title())
-
-        entry_text = entry_text.replace('f:title.jp-pretty',
-                                        sanitize(self.doujin.title(Format.Japanese)))
-
-        entry_text = entry_text.replace('f:title.jp',
-                                        self.doujin.title(Format.Japanese))
-
-        entry_text = entry_text.replace('f:pages', str(self.doujin.num_pages))
-
-        # fuck you, i use british english
-        entry_text = entry_text.replace('f:favourites', str(self.doujin.num_favorites))
-
-        entry_text = entry_text.replace('f:rating', str(self.meta['score']))
-
-        entry_text = entry_text.replace('f:desc', self.meta['desc'])
-
-        entry_text = entry_text.replace('f:link', self.doujin.url)
-
-        # f:time String Creation
-        time = datetime.fromtimestamp(self.doujin.epos)
-        entry_text = entry_text.replace('f:time', time.strftime('%B %d %Y, %H:%M:%S'))
-
-        # f:creator String Creation
-        artist_names = [tag.name for tag in self.doujin.artist]
-        artist_names_str = ', '.join(artist_names)
-
-        group_names = [tag.name for tag in self.doujin.group]
-        group_names_str = ', '.join(artist_names)
-
-        if len(artist_names) > 0 and len(group_names) > 0:  # artist + group
-            creator = f'({artist_names_str} / {group_names_str})'
-            entry_text = entry_text.replace('f:creator', creator)
-
-        elif len(artist_names) > 0 and len(group_names) == 0:  # artist
-            creator = f'({artist_names_str})'
-            entry_text = entry_text.replace('f:creator', creator)
-        
-        elif len(artist_names) == 0 and len(group_names) > 0:  # group:
-            creator = f'({group_names_str})'
-            entry_text = entry_text.replace('f:creator', creator)
-
-        else:  # nothing
-            entry_text = entry_text.replace(' f:creator', '')
-
-        # Parody
-        if len(self.doujin.parody) > 0 and self.doujin.parody[0].name != 'original':
-            total = len(self.doujin.parody)
-            tag_names = [tag.name for tag in self.doujin.parody]
-
-            entry_text = entry_text.replace('f:parody',
-                                            'Parodying: ' + ', '.join(tag_names))
-
-        else: 
-            entry_text = entry_text.replace('\nf:parody', '')
+            entry_text = self.format(entry_file.read())
 
         # Characters
         if len(self.doujin.character) > 0:
@@ -352,19 +397,8 @@ class CatalogueGenerator:
                 if isinstance(area_data['path'], str):
                     area_data['path'] = str(self.format_dir.joinpath(area_data['path']))
 
-        artist_names = [tag.name for tag in self.doujin.artist]
-        artist_names_str = ', '.join(artist_names)
-
-        placements['artist']['text'] = artist_names_str
-
-        tag_names = [tag.name for tag in self.doujin.tag]
-        placements['tags']['text'] = ', '.join(tag_names)
-
-        placements['title']['text'] = self.doujin.title(Format.Pretty)
-
-        placements['id']['text'] = self.meta['id']
-
-        placements['link']['text'] = f'nh.{self.doujin.id}'
+        for area in [area for area in placements if 'text' in area]:
+            area['text'] = self.format(area['text'])
 
         template_image = Image.open(self.template).convert('RGBA')
 
