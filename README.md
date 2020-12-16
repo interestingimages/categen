@@ -58,7 +58,7 @@ thumbnail = generator.thumbnail()  # returns PIL.Image.Image
 You can run a test on the main functions of categen by using the following command
 in the root of the repository directory:
 
-`python -c "import tests"`
+`python -c "import tests.generation"`
 
 ## Contact
 
