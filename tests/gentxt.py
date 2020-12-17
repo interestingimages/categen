@@ -32,7 +32,8 @@ class Test:
 file_dir = Path(__file__).parent
 preview_img = Image.open(str(file_dir.joinpath('verycool23ar.png')))
 output_dir = file_dir.joinpath('output')
-entry_text = output_dir.joinpath('entry.txt')
+entry_wa_text = output_dir.joinpath('entry-wa.txt')
+entry_tg_text = output_dir.joinpath('entry-tg.txt')
 
 if output_dir.is_dir() is False:
     mkdir(output_dir)
@@ -46,10 +47,11 @@ test.stop()
 
 test = Test('Generator Initialization')
 generator = CatalogueGenerator(cat_id=0,
-                               doujin_id=300000,
+                               doujin_id=338763,
                                preview=preview_img,
                                score=10,
-                               desc='The test of the century.')
+                               desc='The test of the century.',
+                               )
 test.stop()
 
 test = Test('Checking for Updates')
@@ -64,15 +66,13 @@ else:
     test.stop()
 
 test = Test('Entry Generation')
-entry = generator.entry()
+entry_tg = generator.entry()
+entry_wa = generator.entry(markdown='WhatsApp')
 test.stop()
-with open(entry_text, 'w') as entry_file:
-    entry_file.write(entry)
-
-test = Test('Thumbnail Generation')
-thumbnail = generator.thumbnail(suppress=True)
-test.stop()
-thumbnail.save(str(output_dir.joinpath('thumbnail.png')))
+with open(entry_tg_text, 'w') as entry_file:
+    entry_file.write(entry_tg)
+with open(entry_wa_text, 'w') as entry_file:
+    entry_file.write(entry_wa)
 
 end = time()
 
