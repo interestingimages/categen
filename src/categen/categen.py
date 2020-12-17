@@ -139,7 +139,7 @@ class CatalogueGenerator:
             'italic': ['_', '_'],
 
             #```Hello World```
-            'mcode': ['```', '```'],
+            'scode': ['```', '```'],
             'mcode': ['```', '```']
         },
 
@@ -173,8 +173,7 @@ class CatalogueGenerator:
         interestingtags: bool = True if config['Settings']['interestingtags'] == 'True' else False
     ):
         assert markdown in self.markdown_map, f'Invalid markdown type! ({markdown})'
-        self.markdown_type = markdown
-        self.markdown = self.markdown_map[markdown]
+        self.markdown = markdown
 
         assert divide in ['left', 'right', 'both']
         self.divide_type = divide
@@ -233,12 +232,16 @@ class CatalogueGenerator:
     def divide(self, text: str) -> str:
         if self.divide_type == 'both':
             return text
-
         elif self.divide_type == 'left':
-            return text.split('|')[0].lstrip().rstrip()
-
+            if '|' in text:
+                return text.split('|')[0].lstrip().rstrip()
+            else:
+                return text
         else:
-            return text.split('|')[1].lstrip().rstrip()
+            if '|' in text:
+                return text.split('|')[1].lstrip().rstrip()
+            else:
+                return text
     
     def update_check(self) -> dict:
         lplacements = loads(rget(config['Repository']['latest_placements']).text)
@@ -265,19 +268,23 @@ class CatalogueGenerator:
         return Repo.clone_from(url=config['Repository']['format_repository'],
                                to_path=self.format_dir)
 
-    def format(self, text: str) -> str:
+    def format(self, text: str, markdown_type: str) -> str:
         def fword(keyword: str) -> str:
             try:
-                return f'{keyword}:{self.formatting_map[keyword]}'
+                override = self.formatting_map[keyword]
             except KeyError:
                 return keyword
+            else:
+                return f'{keyword}:{override}'
 
         # Title Generation
         title_p_en = self.doujin.title(Format.Pretty)
         title_p_jp = sanitize(self.doujin.title(Format.Japanese))
 
-        bold = self.markdown['bold'][0]
-        _bold = self.markdown['bold'][1]
+        markdown = self.markdown_map[markdown_type]
+
+        bold = markdown['bold'][0]
+        _bold = markdown['bold'][1]
 
         if title_p_en != '' and title_p_jp != '':  # <--- en + jp
             title = f'{bold}{title_p_en}{_bold} - {title_p_jp}'
@@ -310,17 +317,17 @@ class CatalogueGenerator:
         tags_remainder = [tag for tag in tags if tag not in tags_interest]
 
         format_map = {
-            'bold': self.markdown['bold'][0],
-            '-bold': self.markdown['bold'][1],
+            'bold': markdown['bold'][0],
+            '-bold': markdown['bold'][1],
 
-            'italic': self.markdown['italic'][0],
-            '-italic': self.markdown['italic'][1],
+            'italic': markdown['italic'][0],
+            '-italic': markdown['italic'][1],
 
-            'scode': self.markdown['scode'][0],
-            '-scode': self.markdown['scode'][1],
+            'scode': markdown['scode'][0],
+            '-scode': markdown['scode'][1],
 
-            'mcode': self.markdown['mcode'][0],
-            '-mcode': self.markdown['mcode'][1],
+            'mcode': markdown['mcode'][0],
+            '-mcode': markdown['mcode'][1],
 
             fword('entry_id'): self.meta['id'],
             fword('rating'): self.meta['score'],
@@ -347,26 +354,26 @@ class CatalogueGenerator:
             fword('link'): self.doujin.url,
             fword('time'): datetime.fromtimestamp(self.doujin.epos).strftime('%B %d %Y, %H:%M:%S'),
 
-            # TODO: Test/fix this, 300000 should display both but it doesn't
             fword('parody'): ', '.join([t.name for t in self.doujin.parody]),  # <------- applicable
-
             fword('characters'): ', '.join([t.name for t in self.doujin.character]),  # <- applicable
 
             fword('slink'): f'nh.{self.doujin.id}'
         }
 
         for keyword, replacement in format_map.items():
-            if not any([
+            conditions = [
                 'parody' in keyword and replacement == 'original',
                 'parody' in keyword and replacement == '',
                 'favourites' in keyword and replacement == '0',
                 'character' in keyword and replacement == '',
                 'creator.group' in keyword and replacement == ''
-            ]):
+            ]
+            if not any(conditions):
                 if ':' in keyword:
                     # keyword:\nkeyword\n
+                    _keyword = keyword
                     keyword = keyword.split(':')[0]
-                    replacement = keyword.lstrip(keyword.split(':')[0]).replace('{}', replacement)
+                    replacement = _keyword.lstrip(keyword.split(':')[0] + ':').replace('{}', replacement)
 
                 text = self.divide(text.replace(f'<[{keyword}]>', str(replacement)))
             
@@ -375,9 +382,12 @@ class CatalogueGenerator:
 
         return text
 
-    def entry(self) -> str:
+    def entry(self, markdown: str = '') -> str:
+        markdown = self.markdown if markdown == '' else markdown
+        assert markdown in self.markdown_map, f'Invalid markdown type! ({markdown})'
+
         with open(self.entry_path, 'r') as entry_file:
-            entry_text = self.format(entry_file.read())
+            entry_text = self.format(entry_file.read(), markdown_type=markdown)
 
         return entry_text
 
@@ -393,7 +403,8 @@ class CatalogueGenerator:
                     area_data['path'] = str(self.format_dir.joinpath(area_data['path']))
                 
                 if 'text' in area_data:
-                    area_data['text'] = self.format(area_data['text'])
+                    area_data['text'] = self.format(area_data['text'],
+                                                    markdown_type=self.markdown)
                 
                 placements[area_name] = area_data
 
