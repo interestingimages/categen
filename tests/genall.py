@@ -28,6 +28,8 @@ class Test:
         print(f'{self.indent}✅ {self.message} {new_message}- Time Taken: {taken}')
 
 
+print('interesting images Catalogue Entry Generator - Testing - Generation\n')
+
 # Miscellaneous
 file_dir = Path(__file__).parent
 preview_img = Image.open(str(file_dir.joinpath('verycool23ar.png')))
