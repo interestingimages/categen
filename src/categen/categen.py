@@ -21,12 +21,12 @@ _local_format_dir = Path(_file_dir).joinpath('format')
 data_dir_map = {
     'Linux': getenv(
         'XDG_DATA_DIR',
-        Path(Path.home(),'.local/share')
+        Path(Path.home(), '.local/share')
     ),
 
     'Windows': getenv(
         'XDG_DATA_DIR',
-        Path(Path.home(),'AppData\Roaming')
+        Path(Path.home(), 'AppData/Roaming')
     ),
 
     'macOS': getenv(
@@ -53,8 +53,8 @@ if _config_file.is_file() is False:
     }
     config['Repository'] = {
         'format_repository': 'git://github.com/interestingimages/Format.git',
-        'latest_placements': 'https://raw.githubusercontent.com/' + 
-            'interestingimages/Format/master/placements.json',
+        'latest_placements': 'https://raw.githubusercontent.com/interestingimages'
+                             '/Format/master/placements.json',
         'download_path': str(_format_dir)
     }
 
@@ -70,7 +70,7 @@ if _format_dir.is_dir() is False:
     try:
         Repo.clone_from(config['Repository']['format_repository'],
                         config['Repository']['download_path'])
-    
+
     except Exception as e:
         print(f'Could not clone Format repository. ({e})')
 
@@ -122,6 +122,7 @@ def sanitize(name) -> str:
 
     return ' '.join(pure)
 
+
 def retrieve_latest_format(
     format_dir: Path = config['Repository']['download_path']
 ) -> Repo:
@@ -138,7 +139,7 @@ class CatalogueGenerator:
             # _Hello World_
             'italic': ['_', '_'],
 
-            #```Hello World```
+            # ```Hello World```
             'scode': ['```', '```'],
             'mcode': ['```', '```']
         },
@@ -228,7 +229,7 @@ class CatalogueGenerator:
             with open(self.tagsofinterest_path, 'r', encoding='utf-8') as toi:
                 self.tagsofinterest = load(toi)
                 self.interestingtags = interestingtags
-    
+
     def divide(self, text: str) -> str:
         if self.divide_type == 'both':
             return text
@@ -242,13 +243,13 @@ class CatalogueGenerator:
                 return text.split('|')[1].lstrip().rstrip()
             else:
                 return text
-    
+
     def update_check(self) -> dict:
         lplacements = loads(rget(config['Repository']['latest_placements']).text)
 
         with open(self.placements, 'r') as placements_file:
             cplacements = load(placements_file)
-        
+
         report = {
             'status': lplacements['.meta']['version'] == cplacements['.meta']['version'],
             'latest': lplacements['.meta']['version'],
@@ -256,7 +257,7 @@ class CatalogueGenerator:
         }
 
         return report
-    
+
     def update(self) -> Repo:
         # Back up current repo
         with topen(_data_dir.joinpath('format-backup.tar.bz2'), mode='w:bz2') as backup:
@@ -376,7 +377,7 @@ class CatalogueGenerator:
                     replacement = _keyword.lstrip(keyword.split(':')[0] + ':').replace('{}', replacement)
 
                 text = self.divide(text.replace(f'<[{keyword}]>', str(replacement)))
-            
+
             else:
                 text = text.replace(f'<[{keyword}]>', '')
 
@@ -401,11 +402,11 @@ class CatalogueGenerator:
             if area_name != '.meta':
                 if isinstance(area_data['path'], str):
                     area_data['path'] = str(self.format_dir.joinpath(area_data['path']))
-                
+
                 if 'text' in area_data:
                     area_data['text'] = self.format(area_data['text'],
                                                     markdown_type=self.markdown)
-                
+
                 placements[area_name] = area_data
 
         template_image = Image.open(self.template).convert('RGBA')
