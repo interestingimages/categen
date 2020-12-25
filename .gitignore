@@ -4,5 +4,8 @@
 src/categen/dist
 src/categen/__pycache__
 
-tests/output
+tests/gen/output
+
 tests/__pycache__
+tests/gen/__pycache__
+tests/utils/__pycache__
