@@ -27,7 +27,7 @@ categen stores the following files within said folder:
 You can infer from code, `__main__.py` or `tests/generation.py` for more detailed usage.
 
 ```python
-from src.categen import CatalogueGenerator
+from categen import CatalogueGenerator
 from PIL import Image
 
 preview = Image.open('tests/verycool23ar.png').convert('RGBA')
@@ -59,9 +59,3 @@ You can run a test on the main functions of categen by using the following comma
 in the root of the repository directory:
 
 `python -c "import tests.generation"`
-
-## Contact
-
-This script isn't intended for much usage out of the interesting images Community,
-but if you need help with understanding the script, you may reach out to me at
-`hello at rxyth dot co`
