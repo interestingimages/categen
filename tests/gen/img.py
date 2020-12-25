@@ -3,6 +3,7 @@ from PIL import Image
 from time import time
 from os import mkdir
 
+
 class Test:
     def __init__(self, message: str, indent: int = 0):
         if indent > 0:
@@ -15,7 +16,7 @@ class Test:
         self.message = message
         self.indent = indent
         self.start_time = time()
-    
+
     def change(self, icon, message):
         self.message = message
         print(f'{self.indent}{icon} {message}', end='\r')
@@ -28,7 +29,7 @@ class Test:
         print(f'{self.indent}✅ {self.message} {new_message}- Time Taken: {taken}')
 
 
-print('interesting images Catalogue Entry Generator - Testing - Text Generation\n')
+print('interesting images Catalogue Entry Generator - Testing - Image Generation\n')
 
 # Miscellaneous
 file_dir = Path(__file__).parent
@@ -49,11 +50,10 @@ test.stop()
 
 test = Test('Generator Initialization')
 generator = CatalogueGenerator(cat_id=0,
-                               doujin_id=338763,
+                               doujin_id=300000,
                                preview=preview_img,
                                score=10,
-                               desc='The test of the century.',
-                               )
+                               desc='The test of the century.')
 test.stop()
 
 test = Test('Checking for Updates')
@@ -67,14 +67,10 @@ if report['status'] is False:
 else:
     test.stop()
 
-test = Test('Entry Generation')
-entry_tg = generator.entry()
-entry_wa = generator.entry(markdown='WhatsApp')
+test = Test('Thumbnail Generation')
+thumbnail = generator.thumbnail(suppress=False)
 test.stop()
-with open(entry_tg_text, 'w') as entry_file:
-    entry_file.write(entry_tg)
-with open(entry_wa_text, 'w') as entry_file:
-    entry_file.write(entry_wa)
+thumbnail.save(str(output_dir.joinpath('thumbnail.png')))
 
 end = time()
 

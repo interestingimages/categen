@@ -15,7 +15,7 @@ class Test:
         self.message = message
         self.indent = indent
         self.start_time = time()
-    
+
     def change(self, icon, message):
         self.message = message
         print(f'{self.indent}{icon} {message}', end='\r')
@@ -28,7 +28,7 @@ class Test:
         print(f'{self.indent}✅ {self.message} {new_message}- Time Taken: {taken}')
 
 
-print('interesting images Catalogue Entry Generator - Testing - Image Generation\n')
+print('interesting images Catalogue Entry Generator - Testing - Generation\n')
 
 # Miscellaneous
 file_dir = Path(__file__).parent
@@ -49,7 +49,7 @@ test.stop()
 
 test = Test('Generator Initialization')
 generator = CatalogueGenerator(cat_id=0,
-                               doujin_id=338763,
+                               doujin_id=300000,
                                preview=preview_img,
                                score=10,
                                desc='The test of the century.',
@@ -66,6 +66,15 @@ if report['status'] is False:
     test.stop(new_message=f'{report["current"]} -> {report["latest"]}')
 else:
     test.stop()
+
+test = Test('Entry Generation')
+entry_tg = generator.entry()
+entry_wa = generator.entry(markdown='WhatsApp')
+test.stop()
+with open(entry_tg_text, 'w', encoding='utf-8') as entry_file:
+    entry_file.write(entry_tg)
+with open(entry_wa_text, 'w', encoding='utf-8') as entry_file:
+    entry_file.write(entry_wa)
 
 test = Test('Thumbnail Generation')
 thumbnail = generator.thumbnail(suppress=True)
