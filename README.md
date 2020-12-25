@@ -2,25 +2,13 @@
 
 A Catalogue Entry Generator for interesting images.
 
-## Storage
+## Installation
 
-categen comes with the
-[interestingimages/Format]('https://github.com/interestingimages/Format')
-repository, but downloads the repo to a dir if internet is available using GitPython.
+```
+pip3 install iicategen
+```
 
-The storage for interesting images scripts is standardized, and is dictated by the
-`XDG_DATA_DIR` environment variable.
-
-By default, the universal interesting images data directory is located in the following:
-
-- Windows: `C:\Users\<username>\AppData\Roaming\interestingimages`
-- Linux: `~/.local/share/interestingimages`
-- macOS: `~/Library/interestingimages`
-
-categen stores the following files within said folder:
-
-- `format/` - The downloaded/copied Format repository.
-- `categen.ini` - The categen configuration file.
+Minimum Python version is `3.7`.
 
 ## Usage
 
@@ -55,7 +43,35 @@ thumbnail = generator.thumbnail()  # returns PIL.Image.Image
 # you can then handle the files or write them out
 ```
 
+## Tests
+
 You can run a test on the main functions of categen by using the following command
 in the root of the repository directory:
 
-`python -c "import tests.generation"`
+`python -c "import tests.gen.all"`
+
+Other test scripts include:
+
+- `tests.gen.txt`: Generates text only
+- `tests.gen.img`: Generates image only
+- `tests.utils.datadir`: Prints storage/data dir
+
+## Storage
+
+categen comes with the
+[interestingimages/Format]('https://github.com/interestingimages/Format')
+repository, but downloads the repo to a dir if internet is available using GitPython.
+
+The storage for interesting images scripts is standardized, and is dictated by the
+`XDG_DATA_DIR` environment variable.
+
+By default, the universal interesting images data directory is located in the following:
+
+- Windows: `C:\Users\<username>\AppData\Roaming\interestingimages`
+- Linux: `~/.local/share/interestingimages`
+- macOS: `~/Library/interestingimages`
+
+categen stores the following files within said folder:
+
+- `format/` - The downloaded/copied Format repository.
+- `categen.ini` - The categen configuration file.
