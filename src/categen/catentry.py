@@ -254,16 +254,20 @@ class CatalogueEntry:
     def thumbnail(self, preview: Image.Image, suppress: bool = False) -> Image.Image:
         placements = deepcopy(self.placements)
 
-        if '.meta' in placements:
-            placements.pop('.meta')
+        if ".meta" in placements:
+            placements.pop(".meta")
 
         for area in [
             area for area in placements if placements[area].get("type") == "text"
         ]:
             placements[area]["text"] = self._strf(placements[area]["text"])
 
-        for area in [area for area in placements if placements[area]['path'] != '']:
-            placements[area]['path'] = str(Path(self.config['Repository']['path']).joinpath(placements[area]['path']))
+        for area in [area for area in placements if placements[area]["path"] != ""]:
+            placements[area]["path"] = str(
+                Path(self.config["Repository"]["path"]).joinpath(
+                    placements[area]["path"]
+                )
+            )
 
         placements["viewfinder"]["path"] = preview
 
