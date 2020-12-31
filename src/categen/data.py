@@ -157,7 +157,7 @@ class Format:
         from requests import get
         from json import loads
 
-        return loads(get(url).text)[".meta"][".version"]
+        return loads(get(url).text)[".meta"]["version"]
 
     @staticmethod
     def retrieve_local(format_dir=format_dir) -> None:
