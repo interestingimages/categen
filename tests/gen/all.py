@@ -7,71 +7,6 @@ import colorama
 colorama.init(autoreset=True)
 
 
-class StatusManager:
-    class Status:
-        def __init__(self, sid, manager):
-            self.manager = manager
-            self.id = sid - 1
-
-        def colour(self, colour=colorama.Style.RESET_ALL):
-            self.manager.operations[self.id]["colour"] = colour
-            self.manager.update(self.id)
-
-        def text(self, text=""):
-            self.manager.operations[self.id]["info"] = text
-            self.manager.update(self.id)
-
-    def __init__(self, message: str = "Operations"):
-        self.operations = []
-        self.current = 0
-
-        print(f"{colorama.Style.BRIGHT}{message}")
-
-    def update(self, sid):
-        msgdata = self.operations[sid]
-
-        if self.current > sid:
-            diff = self.current - sid
-            print(f"\033[{diff}A", end="\r")
-        else:
-            diff = sid - self.current
-            print(f"\033[{diff}A", end="\r")
-
-        info = "" if msgdata["info"] == "" else f' - {msgdata["info"]}'
-
-        print(
-            f"\033[2K"
-            f'{msgdata["prefix"]}{msgdata["colour"]}{msgdata["message"]}{info}'
-            f"\033[{diff}B",
-            end="\r",
-        )
-
-    def register(self, message, info=None, colour=None) -> Status:
-        prefix = " └─ "
-
-        if len(self.operations) >= 1:
-            print("\033[1A" " ├─ " "\033[1B", end="\r")
-            self.operations[-1]["prefix"] = " ├─ "
-
-        self.operations.append(
-            {
-                "prefix": prefix,
-                "colour": "" if colour is None else colour,
-                "message": message,
-                "info": "" if info is None else info,
-            }
-        )
-
-        print(
-            f'{prefix}{"" if colour is None else colour}'
-            f'{message}{"" if info is None else f" - {info}"}'
-        )
-
-        self.current += 1
-
-        return self.Status(sid=len(self.operations), manager=self)
-
-
 def main(test: str = "all"):
     print(
         f"{colorama.Style.BRIGHT}interesting images"
@@ -82,21 +17,15 @@ def main(test: str = "all"):
     hid = 177013
 
     # Status Creeations
-    stsmgr = StatusManager()
+    stsmgr = categen.cli.StatusManager()
     gencrt = stsmgr.register("Generator Creation")
 
-    if test == "all":
-        etcrts = []
-        for platform in categen.CatalogueEntry.markdown_map:
-            etcrts.append(stsmgr.register(f"Entry Text Generation ({platform})"))
-        tmbcrt = stsmgr.register("Thumbnail Generation")
-
-    elif test == "text":
+    if test == "all" or test == "text":
         etcrts = []
         for platform in categen.CatalogueEntry.markdown_map:
             etcrts.append(stsmgr.register(f"Entry Text Generation ({platform})"))
 
-    elif test == "image":
+    if test == "all" or test == "image":
         tmbcrt = stsmgr.register("Thumbnail Generation")
 
     resout = stsmgr.register("Result Output")
@@ -117,6 +46,7 @@ def main(test: str = "all"):
         entries = []
         for platform, status in zip(categen.CatalogueEntry.markdown_map.keys(), etcrts):
             status.colour(colorama.Fore.YELLOW)
+            stime = time()
 
             entries.append(generator.entry(markdown_type=platform))
 
@@ -126,6 +56,7 @@ def main(test: str = "all"):
     # Generation - Image
     if test == "all" or test == "image":
         tmbcrt.colour(colorama.Fore.YELLOW)
+        stime = time()
 
         preview = Image.open(
             str(Path(__file__).parent.joinpath("verycool23ar.png"))

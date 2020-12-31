@@ -1,4 +1,4 @@
-from .catentry import CatalogueEntry
+from .catentry import CatalogueEntry, data
 from time import sleep, time
 from pathlib import Path
 from PIL import Image
@@ -6,6 +6,71 @@ from os import mkdir
 import colorama
 
 colorama.init()
+
+
+class StatusManager:
+    class Status:
+        def __init__(self, sid, manager):
+            self.manager = manager
+            self.id = sid - 1
+
+        def colour(self, colour=colorama.Style.RESET_ALL):
+            self.manager.operations[self.id]["colour"] = colour
+            self.manager.update(self.id)
+
+        def text(self, text=""):
+            self.manager.operations[self.id]["info"] = text
+            self.manager.update(self.id)
+
+    def __init__(self, message: str = "Operations"):
+        self.operations = []
+        self.current = 0
+
+        print(f"{colorama.Style.BRIGHT}{message}")
+
+    def update(self, sid):
+        msgdata = self.operations[sid]
+
+        if self.current > sid:
+            diff = self.current - sid
+            print(f"\033[{diff}A", end="\r")
+        else:
+            diff = sid - self.current
+            print(f"\033[{diff}A", end="\r")
+
+        info = "" if msgdata["info"] == "" else f' - {msgdata["info"]}'
+
+        print(
+            f"\033[2K"
+            f'{msgdata["prefix"]}{msgdata["colour"]}{msgdata["message"]}{info}'
+            f"\033[{diff}B",
+            end="\r",
+        )
+
+    def register(self, message, info=None, colour=None) -> Status:
+        prefix = " └─ "
+
+        if len(self.operations) >= 1:
+            print("\033[1A" " ├─ " "\033[1B", end="\r")
+            self.operations[-1]["prefix"] = " ├─ "
+
+        self.operations.append(
+            {
+                "prefix": prefix,
+                "colour": "" if colour is None else colour,
+                "message": message,
+                "info": "" if info is None else info,
+            }
+        )
+
+        print(
+            f'{prefix}{"" if colour is None else colour}'
+            f'{message}{"" if info is None else f" - {info}"}'
+        )
+
+        self.current += 1
+
+        return self.Status(sid=len(self.operations), manager=self)
 
 
 class Validator:
@@ -63,8 +128,10 @@ class Validator:
             resp = resp.split(";")
         elif ":" in resp:
             resp = resp.split(":")
+        else:
+            resp = [resp]
 
-        resp = [platform.lstrip() for platform in resp]
+        resp = [platform.lstrip() for platform in resp if platform != ""]
 
         incorrect = []
 
@@ -81,6 +148,8 @@ class Validator:
         if resp == "y" or resp == "Y":
             return True
         elif resp == "n" or resp == "N":
+            return False
+        elif resp == "":
             return False
         else:
             raise Validator.Error("Invalid response!")
@@ -121,12 +190,35 @@ def gather_responses() -> dict:
         "Entry ID": (Validator.entry_id, "eid", True),
         "Doujin ID": (Validator.doujin_id, "hid", True),
         "Score (out of 10)": (str, "score", True),
-        "Description (optional)": (str, "desc", False),
+        "Description (Optional)": (str, "desc", False),
         "Preview Image": (Validator.file_exist, "preview", True),
         "Output Directory": (Validator.dir_create, "output_dir", True),
-        "Entry Platform Export (optional)": (Validator.platform, "platform", False),
-        "Export Generator? (yY/nN)": (Validator.yesno, "export", True),
+        "Entry Platform Export (Optional)": (Validator.platform, "platform", False),
+        "Export Generator? (yY/nN - Optional: No)": (Validator.yesno, "export", False),
     }
+
+    try:
+        config = data.Config()
+        if data.Format.current_ver() != data.Format.latest_ver(config["Repository"]["latest_placements"]):
+            responses["update"] = ask(
+                "Different Format version found online, "
+                f"C:{data.Format.current_ver()} != "
+                f"L:{data.Format.latest_ver(config['Repository']['latest_placements'])}. "
+                "Update? (yY/nN - Optional: No)",
+                Validator.yesno,
+                False,
+            )
+            print()
+
+        else:
+            responses["update"] = False
+
+    except Exception as e:
+        print(
+            f"{colorama.Style.DIM}{colorama.Fore.RED}"
+            f"Warning: Error when trying to compare Format versions ({e})"
+        )
+        responses["update"] = False
 
     for query, payload in request_validate_map.items():
         responses[payload[1]] = ask(query, payload[0], payload[2])
@@ -152,54 +244,64 @@ def main():
     preview = Image.open(str(responses["preview"]))
     output_dir = responses["output_dir"]
 
-    print(
-        f"{colorama.Style.BRIGHT}Operations{colorama.Style.RESET_ALL}\n"
-        f"├─ Entry Generation\n"
-        f"└─ Thumbnail Generation"
-    )
+    # Status Handling
+    stsmgr = StatusManager()
+
+    if responses["update"]:
+        updtop = stsmgr.register("Repository Update")
+
+    etcrts = []
+    for platform in responses["platform"]:
+        etcrts.append(stsmgr.register(f"Entry Text Generation ({platform})"))
+
+    imgcrt = stsmgr.register("Thumbnail Generation")
+
+    if responses["export"]:
+        genexp = stsmgr.register("Generator Serialization")
+
+    # Repository Update
+    if responses["update"]:
+        updtop.colour(colorama.Fore.YELLOW)
+        stime = time()
+
+        try:
+            ceg.format.pull()
+
+        except Exception:
+            from shutil import rmtree
+
+            ceg.format.backup()
+            rmtree(ceg.config["Repository"]["path"])
+            ceg.format.clone()
+
+        updtop.colour(colorama.Fore.GREEN)
+        updtop.text(f"{colorama.Style.DIM}Time Taken: {round(time() - stime, 4)}")
 
     # Entry Generation
-    print(
-        "\033[2F"
-        f"{colorama.Fore.YELLOW}├─ Entry Generation"
-        f"{colorama.Style.RESET_ALL}",
-        end="\r",
-    )
+    entries = []
+    for status, platform in zip(etcrts, responses["platform"]):
+        status.colour(colorama.Fore.YELLOW)
+        stime = time()
 
-    entries = {}
-    for platform in responses["platform"]:
-        entries[platform] = ceg.entry(markdown_type=platform)
+        entries.append(ceg.entry(markdown_type=platform))
 
-    print(
-        f"├─ {colorama.Fore.GREEN}Entry Generation" f"{colorama.Style.RESET_ALL}",
-        end="\r",
-    )
-
-    print("\033[1E", end="\r")
+        status.colour(colorama.Fore.GREEN)
+        status.text(f"{colorama.Style.DIM}Time Taken: {round(time() - stime, 4)}")
 
     # Thumbnail Generation
-    print(
-        f"\r└─ {colorama.Fore.LIGHTYELLOW_EX}Thumbnail Generation"
-        f"{colorama.Style.RESET_ALL}",
-        end="\r",
-    )
+    imgcrt.colour(colorama.Fore.YELLOW)
     stime = time()
 
     thumbnail = ceg.thumbnail(preview=preview, suppress=True)
 
-    otime = round(time() - stime, 3)
-
-    print(
-        f"\r└─ {colorama.Fore.GREEN}Thumbnail Generation"
-        f"{colorama.Style.DIM}{colorama.Fore.RESET}"
-        f" Time Taken: {otime}{colorama.Style.RESET_ALL}"
-    )
+    imgcrt.colour(colorama.Fore.GREEN)
+    imgcrt.text(f"{colorama.Style.DIM}Time Taken: {round(time() - stime, 4)}")
 
     # Output
     if not output_dir.is_dir():
         mkdir(output_dir)
 
-    for platform, text in entries.items():
+    for platform, text in zip(responses["platform"], entries):
         with open(
             output_dir.joinpath(f"entry-{platform}.txt"), "w", encoding="utf-8"
         ) as ef:
@@ -208,8 +310,15 @@ def main():
     thumbnail.save(output_dir.joinpath("thumbnail.png"))
 
     if responses["export"]:
+        genexp.colour(colorama.Fore.YELLOW)
+        stime = time()
+
         with open(output_dir.joinpath("ceg.dill"), "wb") as cegdf:
             cegdf.write(ceg.export())
 
+        genexp.colour(colorama.Fore.GREEN)
+        genexp.text(f"{colorama.Style.DIM}Time Taken: {round(time() - stime, 4)}")
 
-main()
+
+if __name__ == "__main__":
+    main()
