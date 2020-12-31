@@ -77,7 +77,7 @@ class CatalogueEntry:
             )
             try:
                 data.Format.retrieve_online(
-                    url=self.config["Repository"]["format_repository"],
+                    url=self.config["Repository"]["link"],
                     path=self.config["Repository"]["path"],
                 )
 

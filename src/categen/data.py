@@ -29,7 +29,7 @@ class Config:
         },
         "Repository": {
             "path": str(format_dir),
-            "format_repository": "git://github.com/interestingimages/Format.git",
+            "link": "git://github.com/interestingimages/Format.git",
             "latest_placements": "https://raw.githubusercontent.com/"
             "interestingimages/Format/master/placements.json",
             "backup_file": str(backup_file),
@@ -131,12 +131,12 @@ class Format:
 
     def clone(self, path=None, url=None) -> None:
         if url is None:
-            url = self.config["format_repository"]
+            url = self.config["link"]
 
         if path is None:
             path = self.config["path"]
 
-        assert any(Path(path).iterdir()), f"{str(path)} is not empty."
+        assert not any(Path(path).iterdir()), f"{str(path)} is not empty."
 
         repo = self.git.Repo.clone_from(url=url, to_path=path)
 
