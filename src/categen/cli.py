@@ -199,7 +199,9 @@ def gather_responses() -> dict:
 
     try:
         config = data.Config()
-        if data.Format.current_ver() != data.Format.latest_ver(config["Repository"]["latest_placements"]):
+        if data.Format.current_ver() != data.Format.latest_ver(
+            config["Repository"]["latest_placements"]
+        ):
             responses["update"] = ask(
                 "Different Format version found online, "
                 f"C:{data.Format.current_ver()} != "
