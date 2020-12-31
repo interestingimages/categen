@@ -1,86 +1,159 @@
 from pathlib import Path
-from PIL import Image
+from src import categen
 from time import time
-from os import mkdir
+from PIL import Image
+import colorama
 
-class Test:
-    def __init__(self, message: str, indent: int = 0):
-        if indent > 0:
-            indent = '  ' * (indent - 1) + '└─ '
+colorama.init(autoreset=True)
+
+
+class StatusManager:
+    class Status:
+        def __init__(self, sid, manager):
+            self.manager = manager
+            self.id = sid - 1
+
+        def colour(self, colour=colorama.Style.RESET_ALL):
+            self.manager.operations[self.id]["colour"] = colour
+            self.manager.update(self.id)
+
+        def text(self, text=""):
+            self.manager.operations[self.id]["info"] = text
+            self.manager.update(self.id)
+
+    def __init__(self, message: str = "Operations"):
+        self.operations = []
+        self.current = 0
+
+        print(f"{colorama.Style.BRIGHT}{message}")
+
+    def update(self, sid):
+        msgdata = self.operations[sid]
+
+        if self.current > sid:
+            diff = self.current - sid
+            print(f"\033[{diff}A", end="\r")
         else:
-            indent = ''
+            diff = sid - self.current
+            print(f"\033[{diff}A", end="\r")
 
-        print(f'{indent}⌛ {message}', end='\r')
+        info = "" if msgdata["info"] == "" else f' - {msgdata["info"]}'
 
-        self.message = message
-        self.indent = indent
-        self.start_time = time()
+        print(
+            f"\033[2K"
+            f'{msgdata["prefix"]}{msgdata["colour"]}{msgdata["message"]}{info}'
+            f"\033[{diff}B",
+            end="\r",
+        )
 
-    def change(self, icon, message):
-        self.message = message
-        print(f'{self.indent}{icon} {message}', end='\r')
+    def register(self, message, info=None, colour=None) -> Status:
+        prefix = " └─ "
 
-    def stop(self, new_message: str = '', suppress: bool = False):
-        if new_message != '':
-            new_message = f'- {new_message} '
+        if len(self.operations) >= 1:
+            print("\033[1A" " ├─ " "\033[1B", end="\r")
+            self.operations[-1]["prefix"] = " ├─ "
 
-        taken = round(time() - self.start_time, 5)
-        print(f'{self.indent}✅ {self.message} {new_message}- Time Taken: {taken}')
+        self.operations.append(
+            {
+                "prefix": prefix,
+                "colour": "" if colour is None else colour,
+                "message": message,
+                "info": "" if info is None else info,
+            }
+        )
+
+        print(
+            f'{prefix}{"" if colour is None else colour}'
+            f'{message}{"" if info is None else f" - {info}"}'
+        )
+
+        self.current += 1
+
+        return self.Status(sid=len(self.operations), manager=self)
 
 
-print('interesting images Catalogue Entry Generator - Testing - Generation\n')
+def main(test: str = "all"):
+    print(
+        f"{colorama.Style.BRIGHT}interesting images"
+        f"{colorama.Style.RESET_ALL} Tests / Generation ({test.capitalize()})\n"
+    )
 
-# Miscellaneous
-file_dir = Path(__file__).parent
-preview_img = Image.open(str(file_dir.joinpath('verycool23ar.png')))
-output_dir = file_dir.joinpath('output')
-entry_wa_text = output_dir.joinpath('entry-wa.txt')
-entry_tg_text = output_dir.joinpath('entry-tg.txt')
+    eid = 69
+    hid = 177013
 
-if output_dir.is_dir() is False:
-    mkdir(output_dir)
+    # Status Creeations
+    stsmgr = StatusManager()
+    gencrt = stsmgr.register("Generator Creation")
 
-start = time()
+    if test == "all":
+        etcrts = []
+        for platform in categen.CatalogueEntry.markdown_map:
+            etcrts.append(stsmgr.register(f"Entry Text Generation ({platform})"))
+        tmbcrt = stsmgr.register("Thumbnail Generation")
 
-# Tests
-test = Test('Module Import')
-from src.categen import CatalogueGenerator
-test.stop()
+    elif test == "text":
+        etcrts = []
+        for platform in categen.CatalogueEntry.markdown_map:
+            etcrts.append(stsmgr.register(f"Entry Text Generation ({platform})"))
 
-test = Test('Generator Initialization')
-generator = CatalogueGenerator(cat_id=0,
-                               doujin_id=300000,
-                               preview=preview_img,
-                               score=10,
-                               desc='The test of the century.',
-                               )
-test.stop()
+    elif test == "image":
+        tmbcrt = stsmgr.register("Thumbnail Generation")
 
-test = Test('Checking for Updates')
-report = generator.update_check()
-if report['status'] is False:
-    test.change('✅', f'Checking for Updates - Found newer version {report["latest"]}')
-    print()  # Advance /n
-    test = Test('Updating Format Repository', indent=1)
-    generator.update()
-    test.stop(new_message=f'{report["current"]} -> {report["latest"]}')
-else:
-    test.stop()
+    resout = stsmgr.register("Result Output")
 
-test = Test('Entry Generation')
-entry_tg = generator.entry()
-entry_wa = generator.entry(markdown='WhatsApp')
-test.stop()
-with open(entry_tg_text, 'w', encoding='utf-8') as entry_file:
-    entry_file.write(entry_tg)
-with open(entry_wa_text, 'w', encoding='utf-8') as entry_file:
-    entry_file.write(entry_wa)
+    # Operations
+    gencrt.colour(colorama.Fore.YELLOW)
+    stime = time()
 
-test = Test('Thumbnail Generation')
-thumbnail = generator.thumbnail(suppress=True)
-test.stop()
-thumbnail.save(str(output_dir.joinpath('thumbnail.png')))
+    generator = categen.CatalogueEntry(
+        eid=eid, hid=hid, score="test", desc="No description provided."
+    )
 
-end = time()
+    gencrt.colour(colorama.Fore.GREEN)
+    gencrt.text(f"{colorama.Style.DIM}Time Taken: {round(time() - stime, 5)}")
 
-print(f'\n✅ Test completed in {round(end - start, 5)}s.')
+    # Generation - Text
+    if test == "all" or test == "text":
+        entries = []
+        for platform, status in zip(categen.CatalogueEntry.markdown_map.keys(), etcrts):
+            status.colour(colorama.Fore.YELLOW)
+
+            entries.append(generator.entry(markdown_type=platform))
+
+            status.colour(colorama.Fore.GREEN)
+            status.text(f"{colorama.Style.DIM}Time Taken: {round(time() - stime, 5)}")
+
+    # Generation - Image
+    if test == "all" or test == "image":
+        tmbcrt.colour(colorama.Fore.YELLOW)
+
+        preview = Image.open(
+            str(Path(__file__).parent.joinpath("verycool23ar.png"))
+        ).convert("RGBA")
+        thumbnail = generator.thumbnail(preview=preview, suppress=True)
+
+        tmbcrt.colour(colorama.Fore.GREEN)
+        tmbcrt.text(f"{colorama.Style.DIM}Time Taken: {round(time() - stime, 5)}")
+
+    # Output
+    output_dir = Path(__file__).parent.joinpath("output/")
+
+    resout.colour(colorama.Fore.YELLOW)
+    stime = time()
+
+    if test == "all" or test == "text":
+        for platform, text in zip(categen.CatalogueEntry.markdown_map.keys(), entries):
+            with open(
+                output_dir.joinpath(f"entry-{platform}.txt"), "w", encoding="utf-8"
+            ) as ef:
+                ef.write(text)
+
+    if test == "all" or test == "image":
+        thumbnail.save(output_dir.joinpath("thumbnail.png"))
+
+    resout.colour(colorama.Fore.GREEN)
+    resout.text(f"{colorama.Style.DIM}Time Taken: {round(time() - stime, 5)}")
+
+
+if __name__ == "__main__":
+    main()
