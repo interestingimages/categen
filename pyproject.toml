@@ -8,12 +8,17 @@ packages = [
     { include = 'categen', from = 'src' }
 ]
 
+[tool.poetry.scripts]
+categen = "categen.cli:main"
+
 [tool.poetry.dependencies]
 python = "^3.7"
 hentai = "^3.1.4"
 iipp = "^1.1.0"
 GitPython = "^3.1.11"
 tomlkit = "^0.7.0"
+colorama = "^0.4.4"
+dill = "^0.3.3"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.8.4"
