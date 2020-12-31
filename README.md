@@ -10,52 +10,6 @@ pip3 install iicategen
 
 Minimum Python version is `3.7`.
 
-## Usage
-
-You can infer from code, `__main__.py` or `tests/generation.py` for more detailed usage.
-
-```python
-from categen import CatalogueGenerator
-from PIL import Image
-
-preview = Image.open('tests/verycool23ar.png').convert('RGBA')
-
-# make a generator
-generator = CatalogueGenerator(
-    cat_id=1,           # catalogue id                 int
-    doujin_id=177013,   # magic numbers                int
-    preview=preview,    # preview image for thumbnail  PIL.Image.Image,
-    score="6.9"         # doujin score (out of 10)     str (to allow 3.5 or meh)
-    desc="its fucked",  # doujin description           str
-)
-
-# check for updates
-report = generator.update_check()  # 3 keys: status, current, latest
-if report['status'] is False:  # newer version found, update
-    generator.update()
-
-# make entry text
-text = generator.entry()  # return str
-
-# make thumnail
-thumbnail = generator.thumbnail()  # returns PIL.Image.Image
-
-# you can then handle the files or write them out
-```
-
-## Tests
-
-You can run a test on the main functions of categen by using the following command
-in the root of the repository directory:
-
-`python -c "import tests.gen.all"`
-
-Other test scripts include:
-
-- `tests.gen.txt`: Generates text only
-- `tests.gen.img`: Generates image only
-- `tests.utils.datadir`: Prints storage/data dir
-
 ## Storage
 
 categen comes with the
@@ -75,3 +29,66 @@ categen stores the following files within said folder:
 
 - `format/` - The downloaded/copied Format repository.
 - `categen.ini` - The categen configuration file.
+
+## Usage
+
+categen is meant as an internal tool, and if you are interested in utilizing the code personally, you may do any of the following:
+
+- Infer from Code
+  - `src/categen/data.py`
+  - `src/categen/catentry.py`
+  - `tests/gen/all.py`
+
+- Contact Me (rxyth at criptext dot com)
+
+```python
+from categen import CatalogueGenerator
+from PIL import Image
+
+preview = Image.open('tests/verycool23ar.png').convert('RGBA')
+
+# Make a "Generator"
+generator = CatalogueGenerator(
+    eid=1,
+    hid=177013,
+    score="7.5",
+    desc="the sheer cursery"
+)
+
+# Advanced - Check for Updates
+if generator.format.latest_ver != generator.format.current_ver:
+    try:
+        # Attempt to pull from configured repo
+        generator.format.pull()
+
+    except Exception:
+        from shutil import rmtree
+
+        # Backup format repo
+        generator.format.backup()
+        # Remove current format repo
+        rmtree(generator.config["Repository"]["path"])
+        # Clone new format repo
+        generator.format.clone()
+
+# Generate Entry Text (str)
+text = generator.entry()
+
+# Generate Thumbnail (PIL.Image.Image)
+thumbnail = generator.thumbnail()
+
+# ... Write them out to files or whatever
+```
+
+## Tests
+
+You can run a test on the main functions of categen by using the following command
+in the root of the repository directory:
+
+`python -c "import tests.gen.all"`
+
+Other test scripts include:
+
+- `tests.gen.txt`: Generates text only
+- `tests.gen.img`: Generates image only
+- `tests.utils.datadir`: Prints storage/data dir, can be fed into cd, etc.
