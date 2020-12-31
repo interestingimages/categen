@@ -78,12 +78,12 @@ class Validator:
         return resp
 
     def yesno(resp) -> bool:
-        if resp == 'y' or resp == 'Y':
+        if resp == "y" or resp == "Y":
             return True
-        elif resp == 'n' or resp == 'N':
+        elif resp == "n" or resp == "N":
             return False
         else:
-            raise Validator.Error('Invalid response!')
+            raise Validator.Error("Invalid response!")
 
 
 def gather_responses() -> dict:
@@ -125,7 +125,7 @@ def gather_responses() -> dict:
         "Preview Image": (Validator.file_exist, "preview", True),
         "Output Directory": (Validator.dir_create, "output_dir", True),
         "Entry Platform Export (optional)": (Validator.platform, "platform", False),
-        "Export Generator? (yY/nN)": (Validator.yesno, "export", True)
+        "Export Generator? (yY/nN)": (Validator.yesno, "export", True),
     }
 
     for query, payload in request_validate_map.items():
