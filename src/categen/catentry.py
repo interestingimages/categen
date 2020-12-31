@@ -283,6 +283,6 @@ class CatalogueEntry:
         return self._entry
 
     def export(self) -> bytes:
-        import dill
+        from dill import dumps
 
-        return dill.dump(self)
+        return dumps(self)
