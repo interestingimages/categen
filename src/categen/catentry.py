@@ -143,10 +143,16 @@ class CatalogueEntry:
         else:
             return text
 
-    def _strf(self, text: str, markdown_type: str = None) -> str:
+    def _strf(
+        self, text: str, markdown_type: str = None, disable_override: bool = False
+    ) -> str:
         def fword(keyword: str) -> str:
             override = self.formatting_map.get(keyword)
-            return keyword if override is None else f"{keyword}:{override}"
+            return (
+                keyword
+                if override is None or disable_override
+                else f"{keyword}:-sep-:{override}"
+            )
 
         if markdown_type is None:
             markdown_type = self.config["Settings"]["markdown_type"]
@@ -231,22 +237,28 @@ class CatalogueEntry:
                 "parody" in keyword and replacement == "original",
                 "parody" in keyword and replacement == "",
                 "favourites" in keyword and replacement == "0",
-                "character" in keyword and replacement == "",
+                "characters" in keyword and replacement == "",
                 "creator.group" in keyword and replacement == "",
                 "description" in keyword and replacement == "",
+                "tags.remainder" in keyword and replacement == "",
             ]
             if not any(conditions):
-                if ":" in keyword:
-                    # keyword:\nkeyword\n
+                if ":-sep-:" in keyword:
+                    # keyword:-sep-:\nkeyword\n
                     _keyword = keyword
-                    keyword = keyword.split(":")[0]
-                    replacement = _keyword.lstrip(keyword.split(":")[0] + ":").replace(
-                        "{}", replacement
+                    keyword = keyword.split(":-sep-:")[0]
+
+                    replacement = self._strf(
+                        _keyword.lstrip(keyword.split(":-sep-:")[0] + ":-sep-:"),
+                        disable_override=True,
                     )
 
                 text = self._divide(text.replace(f"<[{keyword}]>", str(replacement)))
 
             else:
+                if ":-sep-:" in keyword:
+                    keyword = keyword.split(":-sep-:")[0]
+
                 text = text.replace(f"<[{keyword}]>", "")
 
         return text
@@ -279,7 +291,7 @@ class CatalogueEntry:
         return self._thumbnail
 
     def entry(self, markdown_type: str = None) -> str:
-        self._entry = self._strf(self.entry_text)
+        self._entry = self._strf(self.entry_text, markdown_type=markdown_type)
         return self._entry
 
     def export(self) -> bytes:
