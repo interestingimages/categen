@@ -250,6 +250,7 @@ class CatalogueEntry:
 
                     replacement = self._strf(
                         _keyword.lstrip(keyword.split(":-sep-:")[0] + ":-sep-:"),
+                        markdown_type=markdown_type,
                         disable_override=True,
                     )
 
