@@ -85,10 +85,10 @@ thumbnail = generator.thumbnail()
 You can run a test on the main functions of categen by using the following command
 in the root of the repository directory:
 
-`python -c "import tests.gen.all"`
+`python -c "import tests.gen.all"` (Generates image+text)
 
 Other test scripts include:
 
 - `tests.gen.txt`: Generates text only
 - `tests.gen.img`: Generates image only
-- `tests.utils.datadir`: Prints storage/data dir, can be fed into cd, etc.
+- `tests.git`: Tests Git Handling Functionality

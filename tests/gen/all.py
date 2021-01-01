@@ -1,8 +1,8 @@
 from pathlib import Path
-from src import categen
-from time import time
-from PIL import Image
 import colorama
+
+from src import categen
+from tests import utils
 
 colorama.init(autoreset=True)
 
@@ -16,8 +16,10 @@ def main(test: str = "all"):
     eid = 69
     hid = 177013
 
-    # Status Creeations
+    collector = utils.TracebackCollector()
     stsmgr = categen.cli.StatusManager()
+
+    # Status Creations
     gencrt = stsmgr.register("Generator Creation")
 
     if test == "all" or test == "text":
@@ -27,63 +29,54 @@ def main(test: str = "all"):
 
     if test == "all" or test == "image":
         tmbcrt = stsmgr.register("Thumbnail Generation")
+    # Output Dir
+    output_dir = Path(__file__).parent.joinpath("output/")
 
-    resout = stsmgr.register("Result Output")
+    if not output_dir.is_dir():
+        from os import mkdir
+
+        mkdir(output_dir)
 
     # Operations
-    gencrt.colour(colorama.Fore.YELLOW)
-    stime = time()
+    def gencreate():
+        return categen.CatalogueEntry(
+            eid=eid, hid=hid, score="test", desc="No description provided."
+        )
 
-    generator = categen.CatalogueEntry(
-        eid=eid, hid=hid, score="test", desc="No description provided."
-    )
+    generator = utils.attempt(gencrt, collector, gencreate)
 
-    gencrt.colour(colorama.Fore.GREEN)
-    gencrt.text(f"{colorama.Style.DIM}Time Taken: {round(time() - stime, 5)}")
+    if generator is None:
+        collector.display()
+        exit()
 
     # Generation - Text
+    def textgen(platform):
+        entries.append(generator.entry(markdown_type=platform))
+
     if test == "all" or test == "text":
         entries = []
+
         for platform, status in zip(categen.CatalogueEntry.markdown_map.keys(), etcrts):
-            status.colour(colorama.Fore.YELLOW)
-            stime = time()
-
-            entries.append(generator.entry(markdown_type=platform))
-
-            status.colour(colorama.Fore.GREEN)
-            status.text(f"{colorama.Style.DIM}Time Taken: {round(time() - stime, 5)}")
+            text = utils.attempt(status, collector, textgen, platform)
+            if text is not None:
+                with open(
+                    output_dir.joinpath(f"entry-{platform}.txt"), "w", encoding="utf-8"
+                ) as ef:
+                    ef.write(text)
 
     # Generation - Image
-    if test == "all" or test == "image":
-        tmbcrt.colour(colorama.Fore.YELLOW)
-        stime = time()
+    def imagegen():
+        from PIL import Image
 
         preview = Image.open(
             str(Path(__file__).parent.joinpath("verycool23ar.png"))
         ).convert("RGBA")
-        thumbnail = generator.thumbnail(preview=preview, suppress=True)
-
-        tmbcrt.colour(colorama.Fore.GREEN)
-        tmbcrt.text(f"{colorama.Style.DIM}Time Taken: {round(time() - stime, 5)}")
-
-    # Output
-    output_dir = Path(__file__).parent.joinpath("output/")
-
-    resout.colour(colorama.Fore.YELLOW)
-    stime = time()
-
-    if test == "all" or test == "text":
-        for platform, text in zip(categen.CatalogueEntry.markdown_map.keys(), entries):
-            with open(
-                output_dir.joinpath(f"entry-{platform}.txt"), "w", encoding="utf-8"
-            ) as ef:
-                ef.write(text)
+        generator.thumbnail(preview=preview, suppress=True).save(
+            output_dir.joinpath("thumbnail.png")
+        )
 
     if test == "all" or test == "image":
-        thumbnail.save(output_dir.joinpath("thumbnail.png"))
-
-    resout.colour(colorama.Fore.GREEN)
-    resout.text(f"{colorama.Style.DIM}Time Taken: {round(time() - stime, 5)}")
+        utils.attempt(tmbcrt, collector, imagegen)
 
 
 if __name__ == "__main__":
