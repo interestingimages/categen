@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "iicategen"
-version = "2.1.0"
+version = "2.1.1"
 description = "A Catalogue Entry Generator for interesting images."
 authors = ["hysrx <github@rxyth.co>"]
 license = "MIT"
