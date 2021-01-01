@@ -47,12 +47,12 @@ def main():
     config = utils.attempt(cfgini, tbcollect, cfginit)
     if config is None:  # Failed, cannot continue.
         tbcollect.display()
-        exit()
+        exit(1)
 
     repo = utils.attempt(rpoini, tbcollect, rpoinit, rpoini, config)
     if repo is None:  # Failed, cannot continue.
         tbcollect.display()
-        exit()
+        exit(1)
 
     # Meta Check
     def meta():
@@ -87,6 +87,9 @@ def main():
     utils.attempt(rpocln, tbcollect, clone, repo, backup_status)
 
     tbcollect.display()
+
+    if len(tbcollect.tracebacks) >= 1:
+        exit(1)
 
 
 if __name__ == "__main__":

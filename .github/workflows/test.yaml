@@ -1,0 +1,33 @@
+name: Functionality Test
+on:
+  push:
+    branches:
+      - future
+  pull_request:
+    branches:
+      - future
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Python 3
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry wheel
+          poetry export >> frozenreqs.txt
+          pip install -r frozenreqs.txt
+      - name: Generation Test
+        env:
+          XDG_DATA_DIR: /home/runner/work/categen
+        run: python -m tests.gen.all
+      - name: Format Git Repository Test
+        if: ${{ always() }}
+        env:
+          XDG_DATA_DIR: /home/runner/work/categen
+        run: python -m tests.git

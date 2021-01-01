@@ -47,7 +47,7 @@ def main(test: str = "all"):
 
     if generator is None:
         collector.display()
-        exit()
+        exit(1)
 
     # Generation - Text
     def textgen(platform):
@@ -77,6 +77,9 @@ def main(test: str = "all"):
 
     if test == "all" or test == "image":
         utils.attempt(tmbcrt, collector, imagegen)
+
+    if len(collector.tracebacks) >= 1:
+        exit(1)
 
 
 if __name__ == "__main__":
