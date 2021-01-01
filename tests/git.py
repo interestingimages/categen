@@ -88,6 +88,9 @@ def main():
 
     tbcollect.display()
 
+    if len(tbcollect.tracebacks) >= 1:
+        exit(-1)
+
 
 if __name__ == "__main__":
     main()
