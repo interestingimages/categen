@@ -1,5 +1,5 @@
 GitPython>=3.1.11
-hentai>=3.1.5
+hentai>=3.2.1
 iipp>=1.1.0
 tomlkit>=0.7.0
 dill>=0.3.3
