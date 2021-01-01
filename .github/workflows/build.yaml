@@ -1,4 +1,4 @@
-name: Functionality Test
+name: Build 
 on:
   push:
     branches:
@@ -8,7 +8,7 @@ on:
       - future
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -22,12 +22,5 @@ jobs:
           pip install poetry wheel
           poetry export >> frozenreqs.txt
           pip install -r frozenreqs.txt
-      - name: Generation Test
-        env:
-          XDG_DATA_DIR: /home/runner/work/categen
-        run: python -m tests.gen.all
-      - name: Format Git Repository Test
-        if: ${{ always() }}
-        env:
-          XDG_DATA_DIR: /home/runner/work/categen
-        run: python -m tests.git
+      - name: Build Package
+        run: poetry build
