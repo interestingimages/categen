@@ -44,17 +44,15 @@ def main():
 
             return categen.data.Format(config["Repository"])
 
-    exit(-1)
-
     config = utils.attempt(cfgini, tbcollect, cfginit)
     if config is None:  # Failed, cannot continue.
         tbcollect.display()
-        exit(-1)
+        exit(1)
 
     repo = utils.attempt(rpoini, tbcollect, rpoinit, rpoini, config)
     if repo is None:  # Failed, cannot continue.
         tbcollect.display()
-        exit(-1)
+        exit(1)
 
     # Meta Check
     def meta():
@@ -91,7 +89,7 @@ def main():
     tbcollect.display()
 
     if len(tbcollect.tracebacks) >= 1:
-        exit(-1)
+        exit(1)
 
 
 if __name__ == "__main__":
