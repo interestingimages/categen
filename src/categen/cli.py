@@ -42,7 +42,8 @@ class StatusManager:
 
         print(
             f"\033[2K"
-            f'{msgdata["prefix"]}{msgdata["colour"]}{msgdata["message"]}{info}'
+            f'{msgdata["prefix"]}{msgdata["colour"]}{msgdata["message"]}'
+            f"{colorama.Style.RESET_ALL}{info}"
             f"\033[{diff}B",
             end="\r",
         )
@@ -107,21 +108,22 @@ class Validator:
             return Path(resp)
 
     def dir_create(resp) -> Path:
+        resp = "." if resp == "" else resp
+
         if not Path(resp).is_dir():
             from shutil import rmtree
 
             try:
                 mkdir(resp)
-
             except Exception as e:
                 raise Validator.Error(f"Directory cannot be made! ({e})")
-
             else:
                 rmtree(resp)
 
         return Path(resp)
 
     def platform(resp) -> list:
+        resp = "Telegram" if resp == "" else resp
         if "," in resp:
             resp = resp.split(",")
         elif ";" in resp:
@@ -192,7 +194,7 @@ def gather_responses() -> dict:
         "Score (out of 10)": (str, "score", True),
         "Description (Optional)": (str, "desc", False),
         "Preview Image": (Validator.file_exist, "preview", True),
-        "Output Directory": (Validator.dir_create, "output_dir", True),
+        "Output Directory (Optional: .)": (Validator.dir_create, "output_dir", False),
         "Entry Platform Export (Optional)": (Validator.platform, "platform", False),
         "Export Generator? (yY/nN - Optional: No)": (Validator.yesno, "export", False),
     }
@@ -258,6 +260,8 @@ def main():
 
     imgcrt = stsmgr.register("Thumbnail Generation")
 
+    outops = stsmgr.register("Output Generated Files")
+
     if responses["export"]:
         genexp = stsmgr.register("Generator Serialization")
 
@@ -300,16 +304,24 @@ def main():
     imgcrt.text(f"{colorama.Style.DIM}Time Taken: {round(time() - stime, 4)}")
 
     # Output
+    outops.colour(colorama.Fore.YELLOW)
+
     if not output_dir.is_dir():
         mkdir(output_dir)
 
-    for platform, text in zip(responses["platform"], entries):
-        with open(
-            output_dir.joinpath(f"entry-{platform}.txt"), "w", encoding="utf-8"
-        ) as ef:
+    # Entry Texts
+    for platform, text, status in zip(responses["platform"], entries, etcrts):
+        output_file = output_dir.joinpath(f"entry-{platform}.txt")
+        outops.text(f"{platform} Entry Text --> {output_file}")
+        with open(output_file, "w", encoding="utf-8") as ef:
+            status.text(f"Saved as {output_file}.")
             ef.write(text)
 
-    thumbnail.save(output_dir.joinpath("thumbnail.png"))
+    # Thumbnail
+    thumbnail_path = output_dir.joinpath("thumbnail.png")
+    outops.text(f"Thumbnail --> {thumbnail_path}")
+    thumbnail.save(thumbnail_path)
+    imgcrt.text(f"Saved as {thumbnail_path}")
 
     if responses["export"]:
         genexp.colour(colorama.Fore.YELLOW)
@@ -320,6 +332,9 @@ def main():
 
         genexp.colour(colorama.Fore.GREEN)
         genexp.text(f"{colorama.Style.DIM}Time Taken: {round(time() - stime, 4)}")
+
+    outops.text()
+    outops.colour(colorama.Fore.GREEN)
 
 
 if __name__ == "__main__":
