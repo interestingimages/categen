@@ -1,9 +1,10 @@
 [tool.poetry]
 name = "iicategen"
-version = "2.1.1"
+version = "2.1.2"
 description = "A Catalogue Entry Generator for interesting images."
-authors = ["hysrx <github@rxyth.co>"]
+authors = ["hysrx <rxyth@criptext.com>"]
 license = "MIT"
+readme = "README.md"
 packages = [
     { include = 'categen', from = 'src' }
 ]
