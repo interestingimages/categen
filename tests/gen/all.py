@@ -47,7 +47,7 @@ def main(test: str = "all"):
 
     if generator is None:
         collector.display()
-        exit()
+        exit(-1)
 
     # Generation - Text
     def textgen(platform):
