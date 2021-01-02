@@ -79,6 +79,7 @@ def main(test: str = "all"):
         utils.attempt(tmbcrt, collector, imagegen)
 
     if len(collector.tracebacks) >= 1:
+        collector.display()
         exit(1)
 
 
