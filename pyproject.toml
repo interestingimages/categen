@@ -16,7 +16,7 @@ categen = "categen.cli:main"
 [tool.poetry.dependencies]
 python = "^3.7"
 hentai = "^3.2.1"
-iipp = "^1.1.0"
+iipp = "^1.2.0"
 GitPython = "^3.1.11"
 tomlkit = "^0.7.0"
 colorama = "^0.4.4"

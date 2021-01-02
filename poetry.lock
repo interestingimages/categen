@@ -186,14 +186,14 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [[package]]
 name = "iipp"
-version = "1.1.0"
+version = "1.2.0"
 description = "A tool to place text and images onto a Pillow image object."
 category = "main"
 optional = false
 python-versions = ">=3.6,<4.0"
 
 [package.dependencies]
-Pillow = ">=8.0.0,<9.0.0"
+Pillow = ">=8.0.1,<9.0.0"
 
 [[package]]
 name = "importlib-metadata"
@@ -493,7 +493,7 @@ testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "5621d16f4ffb48e31a5d3b33fb15eee90b0ce842e60efa120d75928c20c8f177"
+content-hash = "5f52b634804dd27164b957c04817ff806d0d9690f93844147e2e5b3d21a10ac0"
 
 [metadata.files]
 appdirs = [
@@ -563,8 +563,8 @@ idna = [
     {file = "idna-2.10.tar.gz", hash = "sha256:b307872f855b18632ce0c21c5e45be78c0ea7ae4c15c828c20788b26921eb3f6"},
 ]
 iipp = [
-    {file = "iipp-1.1.0-py3-none-any.whl", hash = "sha256:45bf01c6f6a22a77eeddb3b47c919c45aeaf8dbf54e428a77d23eec924b5e4a9"},
-    {file = "iipp-1.1.0.tar.gz", hash = "sha256:7c9734064fdfa1bf4c80a30e15451ce00703ce57a454db2379bcb3d4d741b55a"},
+    {file = "iipp-1.2.0-py3-none-any.whl", hash = "sha256:7af14d31f6b2f85edaf5d6b45a81c49070f8eac988d0fb5d83a916d3e9d57ffb"},
+    {file = "iipp-1.2.0.tar.gz", hash = "sha256:c5cf58088f6abbd00a9fad7bf0360dc0224f31f42c441ac9c38da1f74ea91227"},
 ]
 importlib-metadata = [
     {file = "importlib_metadata-3.3.0-py3-none-any.whl", hash = "sha256:bf792d480abbd5eda85794e4afb09dd538393f7d6e6ffef6e9f03d2014cf9450"},
