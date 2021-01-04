@@ -230,6 +230,8 @@ class CatalogueEntry:
             fword("parody"): ", ".join([t.name for t in self.doujin.parody]),
             fword("characters"): ", ".join([t.name for t in self.doujin.character]),
             fword("slink"): f"nh.{self.doujin.id}",
+            fword("submission"): "",
+            fword("rating"): "",
         }
 
         for keyword, replacement in format_map.items():
