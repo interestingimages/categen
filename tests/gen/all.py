@@ -51,11 +51,9 @@ def main(test: str = "all"):
 
     # Generation - Text
     def textgen(platform):
-        entries.append(generator.entry(markdown_type=platform))
+        return generator.entry(markdown_type=platform)
 
     if test == "all" or test == "text":
-        entries = []
-
         for platform, status in zip(categen.CatalogueEntry.markdown_map.keys(), etcrts):
             text = utils.attempt(status, collector, textgen, platform)
             if text is not None:
@@ -63,6 +61,7 @@ def main(test: str = "all"):
                     output_dir.joinpath(f"entry-{platform}.txt"), "w", encoding="utf-8"
                 ) as ef:
                     ef.write(text)
+                    status.text
 
     # Generation - Image
     def imagegen():
