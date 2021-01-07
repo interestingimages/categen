@@ -96,6 +96,12 @@ class CatalogueEntry:
         self.score = str(score)
         self.description = str(desc)
 
+        assert self.config["Settings"]["divide"] in ["both", "left", "right"], (
+            f'config:General:divide - "{self.config["Settings"]["divide"]}"'
+            "is not a valid divide value!"
+        )
+        self.divide = self.config["Settings"]["divide"]
+
         placements_path = Path(self.config["Repository"]["path"]).joinpath(
             "placements.json"
         )
@@ -134,11 +140,13 @@ class CatalogueEntry:
         self._entry = None
 
     def _divide(self, text: str) -> str:
-        if "|" in text and self._divide_type != "both":
-            if self._divide_type == "left":
-                return text.split("|")[0].lstrip().rstrip()
+        if "|" in text and self.divide != "both":
+            if self.divide == "left":
+                divided = text.split("|")[0].lstrip().rstrip()
             else:
-                return text.split("|")[1].lstrip().rstrip()
+                divided = text.split("|")[1].lstrip().rstrip()
+
+            return divided
 
         else:
             return text
@@ -147,19 +155,19 @@ class CatalogueEntry:
         self, text: str, markdown_type: str = None, disable_override: bool = False
     ) -> str:
         def fword(keyword: str) -> str:
-            override = self.formatting_map.get(keyword)
+            override = self.formatting_map.get(keyword, None)
             return (
-                keyword
-                if override is None or disable_override
-                else f"{keyword}:-sep-:{override}"
+                f"{keyword}:-sep-:{override}"
+                if not any([override is None, override == "", disable_override])
+                else keyword
             )
 
         if markdown_type is None:
             markdown_type = self.config["Settings"]["markdown_type"]
 
         # Title Generation
-        title_p_en = self.doujin.title(Format.Pretty)
-        title_p_jp = Utils.sanitize(self.doujin.title(Format.Japanese))
+        title_p_en = self._divide(self.doujin.title(Format.Pretty))
+        title_p_jp = self._divide(Utils.sanitize(self.doujin.title(Format.Japanese)))
 
         markdown = self.markdown_map[markdown_type]
 
@@ -167,13 +175,13 @@ class CatalogueEntry:
         _bold = markdown["bold"][1]
 
         if title_p_en != "" and title_p_jp != "":
-            title = f"{bold}{title_p_en}{_bold} - {title_p_jp}"
+            title = f"{bold}{title_p_en}{_bold} - {bold}{title_p_jp}{_bold}"
         elif title_p_en != "" and title_p_jp == "":
             title = f"{bold}{title_p_en}{_bold}"
         elif title_p_en == "" and title_p_jp != "":
             title = f"{bold}{title_p_jp}{_bold}"
         else:
-            title = ""
+            title = "Unnamed"
 
         # Creator Text Generation
         artist_names = [tag.name for tag in self.doujin.artist]
@@ -189,7 +197,7 @@ class CatalogueEntry:
         elif len(artist_names) == 0 and len(group_names) > 0:
             creator = f"({group_names_str})"
         else:
-            creator = ""
+            creator = "(No Creator Info)"
 
         # Tags
         tags = [self._divide(tag.name) for tag in self.doujin.tag]
@@ -206,11 +214,11 @@ class CatalogueEntry:
             "mcode": markdown["mcode"][0],
             "-mcode": markdown["mcode"][1],
             fword("entry_id"): self.id,
-            fword("rating"): self.score,
+            fword("score"): self.score,
             fword("description"): self.description,
-            fword("title.english"): self.doujin.title(),
+            fword("title.english"): self._divide(self.doujin.title()),
             fword("title.english.pretty"): title_p_en,
-            fword("title.japanese:"): self.doujin.title(Format.Japanese),
+            fword("title.japanese:"): self._divide(self.doujin.title(Format.Japanese)),
             fword("title.japanese.pretty"): title_p_jp,
             fword("title"): title,
             fword("tags.interest"): ", ".join(tags_interest),
@@ -249,14 +257,15 @@ class CatalogueEntry:
                     # keyword:-sep-:\nkeyword\n
                     _keyword = keyword
                     keyword = keyword.split(":-sep-:")[0]
+                    override = _keyword.lstrip(keyword + ':-sep-:')
 
                     replacement = self._strf(
-                        _keyword.lstrip(keyword.split(":-sep-:")[0] + ":-sep-:"),
+                        text=override,
                         markdown_type=markdown_type,
                         disable_override=True,
                     )
 
-                text = self._divide(text.replace(f"<[{keyword}]>", str(replacement)))
+                text = text.replace(f"<[{keyword}]>", str(replacement))
 
             else:
                 if ":-sep-:" in keyword:
