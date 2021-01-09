@@ -70,6 +70,9 @@ class CatalogueEntry:
     ) -> None:
         self.config = data.Config()
 
+        self.submission = "Official Submission"
+        self.rating = ""
+
         if not Path(self.config["Repository"]["path"]).is_dir():
             print(
                 f'categen: {self.config["Repository"]["path"]} is non-existant, '
@@ -238,8 +241,8 @@ class CatalogueEntry:
             fword("parody"): ", ".join([t.name for t in self.doujin.parody]),
             fword("characters"): ", ".join([t.name for t in self.doujin.character]),
             fword("slink"): f"nh.{self.doujin.id}",
-            fword("submission"): "",
-            fword("rating"): "",
+            fword("submission"): self.submission,
+            fword("rating"): self.rating,
         }
 
         for keyword, replacement in format_map.items():
