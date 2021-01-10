@@ -260,7 +260,7 @@ class CatalogueEntry:
                     # keyword:-sep-:\nkeyword\n
                     _keyword = keyword
                     keyword = keyword.split(":-sep-:")[0]
-                    override = _keyword.lstrip(keyword + ':-sep-:')
+                    override = _keyword.lstrip(keyword + ":-sep-:")
 
                     replacement = self._strf(
                         text=override,
