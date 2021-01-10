@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "iicategen"
-version = "2.1.5"
+version = "2.1.6"
 description = "A Catalogue Entry Generator for interesting images."
 authors = ["hysrx <rxyth@criptext.com>"]
 repository = "https://github.com/interestingimages/categen"
