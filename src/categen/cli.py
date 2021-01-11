@@ -1,7 +1,6 @@
 from .catentry import CatalogueEntry, data
 from time import sleep, time
 from pathlib import Path
-from re import findall
 from PIL import Image
 from os import mkdir
 import colorama
@@ -197,24 +196,31 @@ def gather_responses() -> dict:
         "Entry Platform Export (Optional)": (Validator.platform, "platform", False),
         "Export Generator? (yY/nN - Optional: No)": (Validator.yesno, "export", False),
     }
-    dirrgx = findall("ii.*-...-......", Path(".").absolute().name)
 
-    if len(dirrgx) == 1:
-        # ii5_3-001-300000
-        # ..vid.eid.hid---
-        _, eid, hid = dirrgx[0].replace("ii", "").split("-")
+    try:
+        from re import findall
 
-        if ask(
-            f"Directory Inferred Defaults: EID:{eid} and HID:{hid} (yY/nN - Optional: No)",
-            validator=Validator.yesno,
-            required=False,
-        ):
-            request_validate_map.pop("Entry ID")
-            request_validate_map.pop("Doujin ID")
-            responses["eid"] = eid
-            responses["hid"] = hid
+        dirrgx = findall("ii.*-...-......", Path(".").absolute().name)
 
-        print()
+        if len(dirrgx) == 1:
+            # ii5_3-001-300000
+            # ..vid.eid.hid---
+            _, eid, hid = dirrgx[0].replace("ii", "").split("-")
+
+            if ask(
+                f"Directory Inferred Defaults: EID:{eid} and HID:{hid} (yY/nN - Optional: No)",
+                validator=Validator.yesno,
+                required=False,
+            ):
+                request_validate_map.pop("Entry ID")
+                request_validate_map.pop("Doujin ID")
+                responses["eid"] = eid
+                responses["hid"] = hid
+
+            print()
+
+    except Exception:
+        pass
 
     try:
         config = data.Config()
