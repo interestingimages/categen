@@ -42,6 +42,8 @@ def main(test: str = "all"):
         return categen.CatalogueEntry(eid=eid, hid=hid, desc="No description provided.")
 
     generator = utils.attempt(gencrt, collector, gencreate)
+    generator.submission = "Test Submission"
+    generator.rating = "47% Upvoted"
 
     if generator is None:
         collector.display()
