@@ -186,18 +186,41 @@ def gather_responses() -> dict:
         return response
 
     responses = {}
-
     request_validate_map = {
         # "Displayed Text": (Validator function, responses key, required)
         "Entry ID": (Validator.entry_id, "eid", True),
         "Doujin ID": (Validator.doujin_id, "hid", True),
-        "Score (out of 10)": (str, "score", True),
         "Description (Optional)": (str, "desc", False),
         "Preview Image": (Validator.file_exist, "preview", True),
         "Output Directory (Optional: .)": (Validator.dir_create, "output_dir", False),
         "Entry Platform Export (Optional)": (Validator.platform, "platform", False),
         "Export Generator? (yY/nN - Optional: No)": (Validator.yesno, "export", False),
     }
+
+    try:
+        from re import findall
+
+        dirrgx = findall("ii.*-...-......", Path(".").absolute().name)
+
+        if len(dirrgx) == 1:
+            # ii5_3-001-300000
+            # ..vid.eid.hid---
+            _, eid, hid = dirrgx[0].replace("ii", "").split("-")
+
+            if ask(
+                f"Directory Inferred Defaults: EID:{eid} and HID:{hid} (yY/nN - Optional: No)",
+                validator=Validator.yesno,
+                required=False,
+            ):
+                request_validate_map.pop("Entry ID")
+                request_validate_map.pop("Doujin ID")
+                responses["eid"] = eid
+                responses["hid"] = hid
+
+            print()
+
+    except Exception:
+        pass
 
     try:
         config = data.Config()
@@ -241,7 +264,6 @@ def main():
     ceg = CatalogueEntry(
         eid=responses["eid"],
         hid=responses["hid"],
-        score=responses["score"],
         desc=responses["desc"],
     )
 

@@ -1,0 +1,25 @@
+1. src.categen.catentry.CatalogueEntry
+      Modified export to now compress pickled data,
+      add seperate function to export pure pickled data
+      (export and pure_export respectively)
+
+      Remove score from formatting
+
+   src.categen.catentry
+      Added import_instance  that loads an
+      exported CatalogueEntry object into an object,
+      alongside a "pure" variant
+      (import_instance and import_pure_instance
+      respectively)
+
+   src.categen.cli
+      Try to use re to regex match current working
+      directory name if matches ii.*-...-......
+      (ii5_3-001-123456, ii6-001-123456 valid)
+      and ask user if they would want to set eid
+      and hid as inferred from cwd name
+
+      Remove score from questions asked
+
+   pyproject.toml
+      Bump version

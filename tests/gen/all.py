@@ -14,7 +14,7 @@ def main(test: str = "all"):
     )
 
     eid = 69
-    hid = 177013
+    hid = 300000
 
     collector = utils.TracebackCollector()
     stsmgr = categen.cli.StatusManager()
@@ -39,11 +39,11 @@ def main(test: str = "all"):
 
     # Operations
     def gencreate():
-        return categen.CatalogueEntry(
-            eid=eid, hid=hid, score="test", desc="No description provided."
-        )
+        return categen.CatalogueEntry(eid=eid, hid=hid, desc="No description provided.")
 
     generator = utils.attempt(gencrt, collector, gencreate)
+    generator.submission = "Test Submission"
+    generator.rating = "47% Upvoted"
 
     if generator is None:
         collector.display()

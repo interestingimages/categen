@@ -51,7 +51,6 @@ preview = Image.open('tests/verycool23ar.png').convert('RGBA')
 generator = CatalogueGenerator(
     eid=1,
     hid=177013,
-    score="7.5",
     desc="the sheer cursery"
 )
 
