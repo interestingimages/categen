@@ -220,7 +220,7 @@ class CatalogueEntry:
             "mcode": markdown["mcode"][0],
             "-mcode": markdown["mcode"][1],
             fword("entry_id"): self.id,
-            fword("description"): "\n" + self.description,
+            fword("description"): self.description,
             fword("title.english"): self._divide(self.doujin.title()),
             fword("title.english.pretty"): title_p_en,
             fword("title.japanese:"): self._divide(self.doujin.title(Format.Japanese)),
@@ -256,6 +256,7 @@ class CatalogueEntry:
                 "creator.group" in keyword and replacement == "",
                 "description" in keyword and replacement == "",
                 "tags.remainder" in keyword and replacement == "",
+                "rating" in keyword and replacement == "",
             ]
             if not any(conditions):
                 if ":-sep-:" in keyword:
