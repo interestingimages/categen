@@ -66,7 +66,11 @@ class CatalogueEntry:
     }
 
     def __init__(
-        self, eid: int, hid: int, score: str, desc: str = "", markdown: str = "Telegram"
+        self,
+        eid: int,
+        hid: int,
+        desc: str = "",
+        markdown: str = "Telegram",
     ) -> None:
         self.config = data.Config()
 
@@ -96,7 +100,6 @@ class CatalogueEntry:
 
         self.markdown = self.markdown_map[markdown]
         self.id = "0" * (3 - len(str(eid))) + str(eid)
-        self.score = str(score)
         self.description = str(desc)
 
         assert self.config["Settings"]["divide"] in ["both", "left", "right"], (
@@ -217,8 +220,7 @@ class CatalogueEntry:
             "mcode": markdown["mcode"][0],
             "-mcode": markdown["mcode"][1],
             fword("entry_id"): self.id,
-            fword("score"): self.score,
-            fword("description"): self.description,
+            fword("description"): "\n" + self.description,
             fword("title.english"): self._divide(self.doujin.title()),
             fword("title.english.pretty"): title_p_en,
             fword("title.japanese:"): self._divide(self.doujin.title(Format.Japanese)),
@@ -309,7 +311,26 @@ class CatalogueEntry:
         self._entry = self._strf(self.entry_text, markdown_type=markdown_type)
         return self._entry
 
-    def export(self) -> bytes:
+    def export(self, level: int = 4) -> bytes:
+        from bz2 import compress
+        from dill import dumps
+
+        return compress(dumps(self), compresslevel=level)
+
+    def pure_export(self) -> bytes:
         from dill import dumps
 
         return dumps(self)
+
+
+def import_instance(dilled: bytes) -> CatalogueEntry:
+    from bz2 import decompress
+    from dill import loads
+
+    return loads(decompress(dilled))
+
+
+def import_pure_instance(dilled: bytes) -> CatalogueEntry:
+    from dill import loads
+
+    return loads(dilled)
