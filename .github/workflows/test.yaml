@@ -31,3 +31,8 @@ jobs:
         env:
           XDG_DATA_DIR: /home/runner/work/categen
         run: python -m tests.git
+      - name: Pickling
+        if: ${{ always() }}
+        env:
+          XDG_DATA_DIR: /home/runner/work/categen
+        run: python -m tests.pickle
