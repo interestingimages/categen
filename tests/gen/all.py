@@ -39,9 +39,7 @@ def main(test: str = "all"):
 
     # Operations
     def gencreate():
-        return categen.CatalogueEntry(
-            eid=eid, hid=hid, score="test", desc="No description provided."
-        )
+        return categen.CatalogueEntry(eid=eid, hid=hid, desc="No description provided.")
 
     generator = utils.attempt(gencrt, collector, gencreate)
 
